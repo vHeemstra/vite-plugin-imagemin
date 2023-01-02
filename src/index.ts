@@ -91,7 +91,11 @@ const defaultMinifiers: {
 }
 
 const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
-  const pluginSignature = `✨ ${chalk.cyan('[vite-plugin-imagemin]')}`
+  // const pluginSignature = `✨ ${chalk.cyan('[vite-plugin-imagemin]')}`
+  const pluginSignature = [
+    chalk.yellowBright('⚡'),
+    chalk.blueBright('vite-plugin-imagemin'),
+  ].join('')
 
   let config: ResolvedConfig
   let root: string
@@ -792,7 +796,11 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
           [
             pluginSignature,
             ' - compressed these files:',
-            chalk.dim(' (using: ' + usedPlugins.join(', ') + ')'),
+            chalk.dim(
+              ' (using: ' +
+                usedPlugins.map(n => chalk.magenta(n)).join(', ') +
+                ')',
+            ),
           ].join(''),
         )
 
