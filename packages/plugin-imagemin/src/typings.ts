@@ -1,5 +1,4 @@
-import type { FilterPattern } from '@rollup/pluginutils'
-import type { Logger } from 'vite'
+import type { Logger, FilterPattern } from 'vite'
 import type { Plugin as TImageminPlugin } from 'imagemin'
 
 import type { Options as GifsicleOptions } from 'imagemin-gifsicle'
@@ -10,10 +9,8 @@ import type { Options as PngquantOptions } from 'imagemin-pngquant'
 import type { Options as SvgoOptions } from 'imagemin-svgo'
 import type { Options as WebpOptions } from 'imagemin-webp'
 import type { Options as AvifOptions } from '@vheemstra/imagemin-avifenc'
-// import type { Options as Gif2webpOptions } from 'imagemin-gif2webp'
-// import type { Options as JpegoptimOptions } from 'imagemin-jpegoptim'
-import type { Options as Gif2webpOptions } from '../types/imagemin-gif2webp/types'
-import type { Options as JpegoptimOptions } from '../types/imagemin-jpegoptim/types'
+import type { Options as Gif2webpOptions } from 'imagemin-gif2webp'
+import type { Options as JpegoptimOptions } from 'imagemin-jpegoptim'
 
 type TPluginsConfig = {
   gif2webp?: boolean | Gif2webpOptions
@@ -66,17 +63,17 @@ export type TStackItem = {
 
 export interface IConfigOptions {
   root?: string
-  entry?: string
-  exclude?: FilterPattern
+  // entry?: string
   include?: FilterPattern
+  exclude?: FilterPattern
 
   formatFilePath?: (file: string) => string
 
   /**
-   * Process static assets from public dir as well
+   * Process files in assets dir only
    * @default true
    */
-  processStaticAssets?: boolean
+  onlyAssets?: boolean
 
   /**
    * Console log results

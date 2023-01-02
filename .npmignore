@@ -1,6 +1,11 @@
 .vscode
+.vite-inspect
+dist
 node_modules
 other
+todo
+**/*.__d.ts
+**/bak__*
 playground
-src
-types
+packages/plugin-imagemin/@types/
+packages/plugin-imagemin/src/

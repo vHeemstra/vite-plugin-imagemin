@@ -1,0 +1,88 @@
+{
+  "name": "@vheemstra/vite-plugin-imagemin",
+  "description": "A vite plugin for compressing image assets",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "Philip van Heemstra",
+  "contributors": [
+    "Philip van Heemstra"
+  ],
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "unbuild --stub",
+    "build": "unbuild",
+    "_build": "unbuild && pnpm run patch-cjs",
+    "_patch-cjs": "tsx ../../scripts/patchCJS.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": "^14.18.0 || >=16.0.0"
+  },
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "imagemin",
+    "minify",
+    "compress",
+    "jpg",
+    "png",
+    "gif",
+    "svg",
+    "webp",
+    "avif"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vheemstra/vite-plugin-imagemin.git",
+    "directory": "packages/plugin-imagemin"
+  },
+  "bugs": {
+    "url": "https://github.com/vheemstra/vite-plugin-imagemin/issues"
+  },
+  "homepage": "https://github.com/vheemstra/vite-plugin-imagemin#readme",
+  "dependencies": {
+    "@vheemstra/imagemin-avifenc": "^2.0.1",
+    "chalk": "^5.2.0",
+    "fs-extra": "^11.1.0",
+    "imagemin": "^8.0.1",
+    "imagemin-avif": "^0.1.4",
+    "imagemin-gif2webp": "^3.0.0",
+    "imagemin-gifsicle": "^7.0.0",
+    "imagemin-jpegoptim": "^8.0.0",
+    "imagemin-jpegtran": "^7.0.0",
+    "imagemin-mozjpeg": "^10.0.0",
+    "imagemin-optipng": "^8.0.0",
+    "imagemin-pngquant": "^9.0.2",
+    "imagemin-svgo": "^10.0.1",
+    "imagemin-webp": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.13",
+    "@types/node": "^18.11.18",
+    "@typescript-eslint/eslint-plugin": "^5.47.1",
+    "@typescript-eslint/parser": "^5.47.1",
+    "eslint": "^8.31.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "^2.8.1",
+    "tsup": "^6.5.0",
+    "tsx": "^3.12.1",
+    "typescript": "^4.9.4",
+    "unbuild": "^1.0.2"
+  },
+  "peerDependencies": {
+    "vite": "^4.0.0"
+  }
+}

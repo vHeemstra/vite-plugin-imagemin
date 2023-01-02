@@ -1,6 +1,7 @@
 node_modules
 dist
-playground
-# **/node_modules/**
-# **/dist/**
-# **/.vite-inspect/**
+LICENSE
+pnpm-lock.yaml
+pnpm-workspace.yaml
+**/*.md
+todo

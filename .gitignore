@@ -1,6 +1,8 @@
 .vscode
 .vite-inspect
-demo
 dist
 node_modules
 other
+todo
+**/*.__d.ts
+**/bak__*

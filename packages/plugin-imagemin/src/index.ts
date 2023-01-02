@@ -4,9 +4,8 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { Buffer } from 'node:buffer'
 import { performance } from 'node:perf_hooks'
 import chalk from 'chalk'
-import { normalizePath } from 'vite'
+import { normalizePath, createFilter } from 'vite'
 import type { PluginOption, ResolvedConfig } from 'vite'
-import { createFilter } from '@rollup/pluginutils'
 import type {
   IConfigOptions,
   TMinifierConfig,
@@ -43,30 +42,30 @@ const defaultMinifiers: {
     // options: {},
     plugin: imageminGifsicle,
   },
+  mozjpeg: {
+    active: true,
+    // options: {},
+    plugin: imageminMozjpeg,
+  },
   jpegoptim: {
     active: false,
     // options: {},
     plugin: imageminJpegoptim,
   },
   jpegtran: {
-    active: true,
+    active: false,
     // options: {},
     plugin: imageminJpegtran,
-  },
-  mozjpeg: {
-    active: false,
-    // options: {},
-    plugin: imageminMozjpeg,
-  },
-  optipng: {
-    active: false,
-    // options: {},
-    plugin: imageminOptipng,
   },
   pngquant: {
     active: true,
     // options: {},
     plugin: imageminPngquant,
+  },
+  optipng: {
+    active: false,
+    // options: {},
+    plugin: imageminOptipng,
   },
   svgo: {
     active: true,
@@ -90,24 +89,23 @@ const defaultMinifiers: {
   },
 }
 
-const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
-  // const pluginSignature = `✨ ${chalk.cyan('[vite-plugin-imagemin]')}`
+export default function viteImagemin(_opt: IConfigOptions = {}): PluginOption {
   const pluginSignature = [
-    chalk.yellowBright('⚡'),
-    chalk.blueBright('vite-plugin-imagemin'),
+    // chalk.yellowBright('⚡'),
+    // chalk.blueBright('vite-plugin-imagemin'),
+    chalk.yellow('⚡'),
+    chalk.cyan('vite-plugin-imagemin'),
   ].join('')
 
   let config: ResolvedConfig
   let root: string
-  let sourceDir: string
+  // let sourceDir: string
   let distDir: string
   let assetsDir: string
-  let publicDir = ''
-  const entry: string = _opt?.entry || 'src'
-  const processStaticAssets =
-    _opt && isBoolean(_opt?.processStaticAssets)
-      ? _opt.processStaticAssets
-      : true
+  // let publicDir = ''
+  // const entry: string = _opt?.entry || 'src'
+  const onlyAssets =
+    _opt && isBoolean(_opt?.onlyAssets) ? _opt.onlyAssets : false
   const verbose = _opt && isBoolean(_opt?.verbose) ? _opt.verbose : true
   const formatFilePath =
     _opt && isFunction(_opt?.formatFilePath)
@@ -135,12 +133,7 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
     _opt?.exclude || [/node_modules/],
   )
 
-  const plugins: {
-    all: TImageminPlugin[]
-    avif: TImageminPlugin[]
-    webp: TImageminPlugin[]
-    gif2webp: TImageminPlugin[]
-  } = {
+  const plugins: { [key: string]: TImageminPlugin[] } = {
     all: [],
     avif: [],
     webp: [],
@@ -159,7 +152,7 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
   let hadFilesToProcess = false
   let webpDeleted = false
   let avifDeleted = false
-  let totalTime = 0
+  // let totalTime = 0
   const totalSize = {
     from: 0,
     to: 0,
@@ -181,7 +174,7 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
       [key: string]: boolean | object
     } = _opt?.plugins || {}
 
-    const pluginHandles = {
+    const pluginHandles: { [pluginName: string]: string } = {
       jpegtran: 'jpg',
       mozjpeg: 'jpg',
       jpegoptim: 'jpg',
@@ -205,18 +198,14 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
           } else {
             opts = pluginOptions[key]
           }
-        } else {
-          // TODO: choose: only explicitly set plugins (or all when no config)
-          //               --OR-- only overwrite defaults?
-          opts = false
         }
 
-        // debug(`${key}: ${isNotFalse(opts) ? 'on' : 'off'}`);
         if (!isBoolean(opts)) {
           if (handledExt[pluginHandles[key]]) {
             logger.info(
               [
                 pluginSignature,
+                ' ',
                 chalk.bgYellow(` WARNING `),
                 chalk.yellow(
                   ` ${pluginHandles[
@@ -416,7 +405,7 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
   }
 
   function logResults(results: TProcessedFile[]) {
-    logger.info('')
+    // logger.info('')
 
     const bullets = [' └─ ', ' ├─ '] // ▶▷
     const bulletLength = bullets[0].length
@@ -430,7 +419,7 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
     const maxSizeLength = Math.max(maxLengths.oldSize, maxLengths.newSize)
 
     results.forEach((file, i, a) => {
-      totalTime += file.duration
+      // totalTime += file.duration
       const basenameFrom = path.basename(file.oldPath)
       const basenameTo = path.basename(file.newPath)
       let logArray: string[] = []
@@ -607,14 +596,14 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
       config = resolvedConfig
       root = _opt?.root || config.root || process.cwd()
 
-      sourceDir = normalizePath(path.resolve(root, entry))
+      // sourceDir = normalizePath(path.resolve(root, entry))
       distDir = normalizePath(path.resolve(root, config.build.outDir))
       assetsDir = normalizePath(path.resolve(distDir, config.build.assetsDir))
 
-      if (typeof config.publicDir === 'string') {
-        publicDir = config.publicDir
-      }
-      publicDir = normalizePath(publicDir)
+      // if (typeof config.publicDir === 'string') {
+      //   publicDir = config.publicDir
+      // }
+      // publicDir = normalizePath(publicDir)
 
       if (verbose) {
         logger = config.logger
@@ -700,7 +689,7 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
       // logger.info(assetsDir)
       // logger.info('')
 
-      const processDir = publicDir && processStaticAssets ? distDir : assetsDir
+      const processDir = onlyAssets ? assetsDir : distDir
       const baseDir = `${root}/`
       const rootRE = new RegExp(`^${escapeRegExp(baseDir)}`)
 
@@ -780,24 +769,14 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
         ) as Promise<TProcessResult[]>
       ).then(results => processResults(results))
 
-      // logger.info(
-      //   [
-      //     `${chalk.greenBright(' ✓ ')} OK `,
-      //     chalk.dim(`│`),
-      //     `${chalk.redBright(' ✗ ')} ERROR `,
-      //     chalk.dim(`│`),
-      //     ' • INFO ',
-      //   ].join(''),
-      // )
-
       // Log results
       if (hadFilesToProcess) {
         logger.info(
           [
             pluginSignature,
-            ' - compressed these files:',
+            ' compressed these files:',
             chalk.dim(
-              ' (using: ' +
+              ' (using ' +
                 usedPlugins.map(n => chalk.magenta(n)).join(', ') +
                 ')',
             ),
@@ -852,14 +831,12 @@ const viteImagemin = (_opt?: IConfigOptions): PluginOption => {
             chalk.dim('    in '),
             Math.round(performance.now() - timeStart),
             chalk.dim(' ms'),
-            chalk.dim('    of '),
-            Math.round(totalTime),
-            chalk.dim(' ms'),
+            // chalk.dim('    of '),
+            // Math.round(totalTime),
+            // chalk.dim(' ms'),
           ].join(''),
         )
       }
     },
   }
 }
-
-export default viteImagemin
