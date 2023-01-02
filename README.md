@@ -1,11 +1,22 @@
-<p align="center">
+<h1 align="center">
+  <a target="_blank" rel="noopener noreferrer" href="https://github.com/vHeemstra/vite-plugin-imagemin/blob/main/src/logo.svg?raw=true"><img src="https://github.com/vHeemstra/vite-plugin-imagemin/raw/main/src/logo.svg?raw=true" alt="vite-plugin-imagemin - Vite + Imagemin" title="vite-plugin-imagemin - Vite + Imagemin" style="width: 75%; min-width: 280px; max-width: 800px; height: auto"></a>
+</h1>
 
-![vite-plugin-imagemin](/src/logo.svg?raw=true 'vite-plugin-imagemin')
+> Minify bundled asset and static images in your Vite build with **Imagemin**
 
-<img width="180" src="https://raw.github.com/vHeemstra/vite-plugin-imagemin/main/src/logo.svg" alt="vite-plugin-imagemin - Vite + Imagemin">
+## Features
 
-</p>
-<br/>
+- Minifies all image files
+- Supported minifiers:
+  - GIF: gifsicle
+  - JPG: mozjpeg, jpegtran or jpegoptim
+  - PNG: pngquant or optipng
+  - SVG: svgo
+  - JPG/PNG/GIF: webp / gif2webp
+  - JPG/PNG: avif
+- (optional) Creates WebP versions of supported images (jpg/png/gif)
+- (optional) Creates Avif versions of supported images (jpg/png)
+- (optional) Skips WebP/Avif version if they are larger than original
 
 ## Install
 
