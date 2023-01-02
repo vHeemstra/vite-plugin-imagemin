@@ -1,0 +1,8 @@
+packages:
+  # include packages in subfolders (e.g. apps/ and packages/)
+  - playground/
+  # if required, exclude some directories
+  - '!**/test/**'
+  - '!**/node_modules/**'
+  - '!**/.vscode/**'
+  - '!other/**'
