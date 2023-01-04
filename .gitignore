@@ -1,5 +1,6 @@
 .vscode
 .vite-inspect
+test/**/*
 dist
 node_modules
 other

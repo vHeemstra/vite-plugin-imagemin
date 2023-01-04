@@ -9,8 +9,10 @@ import type { Options as PngquantOptions } from 'imagemin-pngquant'
 import type { Options as SvgoOptions } from 'imagemin-svgo'
 import type { Options as WebpOptions } from 'imagemin-webp'
 import type { Options as AvifOptions } from '@vheemstra/imagemin-avifenc'
-import type { Options as Gif2webpOptions } from 'imagemin-gif2webp'
-import type { Options as JpegoptimOptions } from 'imagemin-jpegoptim'
+// import type { Options as Gif2webpOptions } from 'imagemin-gif2webp'
+// import type { Options as JpegoptimOptions } from 'imagemin-jpegoptim'
+import type { Options as Gif2webpOptions } from '../@types/imagemin-gif2webp/index.__d'
+import type { Options as JpegoptimOptions } from '../@types/imagemin-jpegoptim/index.__d'
 
 type TPluginsConfig = {
   gif2webp?: boolean | Gif2webpOptions

@@ -589,7 +589,7 @@ export default function viteImagemin(_opt: IConfigOptions = {}): PluginOption {
   }
 
   return {
-    name: 'vite-plugin-copy',
+    name: 'vite-plugin-imagemin',
     enforce: 'post',
     apply: 'build',
     configResolved: resolvedConfig => {

@@ -4,6 +4,7 @@
   "engines": {
     "node": "^14.18.0 || >=16.0.0"
   },
+  "type": "module",
   "homepage": "https://github.com/vheemstra/vite-plugin-imagemin#readme",
   "keywords": [
     "vite",
@@ -20,10 +21,15 @@
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "lint": "eslint --cache .",
     "dev": "pnpm -r --parallel --filter \"./packages/*\" run dev",
     "build": "pnpm -r --filter \"./packages/*\" run build",
     "build-all": "pnpm -r --filter \"./packages/*\" run build && pnpm -r --filter \"./playground\" run build",
+    "lint": "eslint --cache .",
+    "test": "vitest",
+    "test-once": "vitest run",
+    "test-with-ui": "vitest --ui",
+    "test-with-coverage": "vitest --coverage",
+    "coverage": "vitest run --coverage",
     "_format": "prettier --write --cache .",
     "_typecheck": "tsc -p scripts --noEmit && tsc -p playground --noEmit",
     "_test": "run-s test-serve test-build",
@@ -38,6 +44,9 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.47.1",
     "@typescript-eslint/parser": "^5.47.1",
+    "@vitest/coverage-c8": "^0.26.3",
+    "@vitest/coverage-istanbul": "^0.26.3",
+    "@vitest/ui": "^0.26.3",
     "eslint": "^8.31.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",

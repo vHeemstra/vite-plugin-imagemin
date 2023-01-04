@@ -11,7 +11,7 @@ export const isBoolean = (arg: unknown): arg is boolean => {
 }
 
 export const isObject = (arg: unknown): arg is boolean => {
-  return typeof arg === 'object'
+  return typeof arg === 'object' && arg !== null
 }
 
 export const isNotFalse = (arg: unknown): arg is boolean => {
@@ -23,16 +23,16 @@ export const isRegExp = (arg: unknown): arg is RegExp => {
 }
 
 export const escapeRegExp = (text: string): string =>
-  text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
+  text.replace(/[[\]{}()*+?.,/\\^$|#-]/g, '\\$&')
 
 /**
  * Ensure all (sub) directories of filepaths exist.
- * @param filePaths Array of filepaths.
+ * @param filePaths Array of normalized filepaths.
  * @param mode Mode for newly created directories.
  */
-export function smartEnsureDirs(filePaths: string[], mode = 0o0755): void {
+export function smartEnsureDirs(filePaths: string[], mode = 0o0755): string[] {
   const fileRE = /\/[^/]*$/
-  Array.from(new Set(filePaths.map(file => file.replace(fileRE, ''))))
+  return Array.from(new Set(filePaths.map(file => file.replace(fileRE, ''))))
     .map((dir): [string, number] => {
       return [dir, dir.split('/').length]
     })
@@ -43,5 +43,8 @@ export function smartEnsureDirs(filePaths: string[], mode = 0o0755): void {
       }
       return dirs
     }, [] as string[])
-    .forEach(dir => ensureDirSync(dir, { mode }))
+    .map(dir => {
+      ensureDirSync(dir, { mode })
+      return dir
+    })
 }
