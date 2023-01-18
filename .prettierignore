@@ -1,7 +1,12 @@
+# Directories
 node_modules
 dist
+coverage
+test
+temp
+
+# Files
 LICENSE
-pnpm-lock.yaml
-pnpm-workspace.yaml
+package-lock.json
 **/*.md
 todo
