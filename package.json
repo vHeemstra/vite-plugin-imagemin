@@ -46,7 +46,13 @@
     "playground:inspect": "npm run serve:inspect -w playground",
     "playground:build:inspect": "run-s playground:build playground:inspect",
     "playground:preview": "npm run preview -w playground",
-    "playground:preview:nobuild": "npm run preview:nobuild -w playground"
+    "playground:preview:nobuild": "npm run preview:nobuild -w playground",
+    "bump:patch": "npm version patch -m \"Patch version %s\" -w packages/core",
+    "bump:minor": "npm version minor -m \"Minor version %s\" -w packages/core",
+    "bump:major": "npm version major -m \"Major version %s\" -w packages/core",
+    "preversion": "npm run lint && npm run build && npm run test",
+    "version": "git add .",
+    "postversion": "git push --follow-tags"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.48.2",
@@ -74,7 +80,8 @@
     "serve": "^14.1.2",
     "typescript": "^4.9.4",
     "vite": "^4.0.4",
-    "vitest": "^0.27.2"
+    "vitest": "^0.27.2",
+    "vitest-github-actions-reporter": "^0.9.0"
   },
   "overrides": {
     "cross-spawn": "7.0.3",

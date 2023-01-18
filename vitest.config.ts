@@ -5,6 +5,7 @@ import {
   defineConfig,
   // configDefaults,
 } from 'vitest/config'
+import GithubActionsReporter from 'vitest-github-actions-reporter'
 
 export default defineConfig({
   test: {
@@ -15,6 +16,9 @@ export default defineConfig({
     // exclude: [...configDefaults.exclude, 'other/*', 'packages/playground/*'],
     testTimeout: 5000,
     globalSetup: ['./vitestGlobalSetup.ts'],
+    reporters: process.env.GITHUB_ACTIONS
+      ? ['default', new GithubActionsReporter()]
+      : 'default',
     coverage: {
       enabled: true,
       // provider: 'c8',

@@ -3,10 +3,47 @@
   "description": "A vite plugin for compressing image assets",
   "version": "1.0.0",
   "license": "MIT",
-  "author": "Philip van Heemstra",
-  "contributors": [
-    "Philip van Heemstra"
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "imagemin",
+    "minify",
+    "compress",
+    "jpg",
+    "png",
+    "gif",
+    "svg",
+    "webp",
+    "avif"
   ],
+  "author": {
+    "name": "Philip van Heemstra",
+    "email": "vanheemstra@gmail.com",
+    "url": "https://github.com/vheemstra"
+  },
+  "maintainers": [
+    {
+      "name": "Philip van Heemstra",
+      "email": "vanheemstra@gmail.com",
+      "url": "https://github.com/vheemstra"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Philip van Heemstra",
+      "email": "vanheemstra@gmail.com",
+      "url": "https://github.com/vheemstra"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vheemstra/vite-plugin-imagemin.git",
+    "directory": "packages/plugin-imagemin"
+  },
+  "bugs": {
+    "url": "https://github.com/vheemstra/vite-plugin-imagemin/issues"
+  },
+  "homepage": "https://github.com/vheemstra/vite-plugin-imagemin#readme",
   "files": [
     "dist"
   ],
@@ -23,28 +60,6 @@
   "engines": {
     "node": "^14.18.0 || >=16.0.0"
   },
-  "keywords": [
-    "vite",
-    "vite-plugin",
-    "imagemin",
-    "minify",
-    "compress",
-    "jpg",
-    "png",
-    "gif",
-    "svg",
-    "webp",
-    "avif"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/vheemstra/vite-plugin-imagemin.git",
-    "directory": "packages/plugin-imagemin"
-  },
-  "bugs": {
-    "url": "https://github.com/vheemstra/vite-plugin-imagemin/issues"
-  },
-  "homepage": "https://github.com/vheemstra/vite-plugin-imagemin#readme",
   "dependencies": {
     "chalk": "^5.2.0",
     "fast-glob": "^3.2.12",

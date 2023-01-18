@@ -1,0 +1,66 @@
+name: Test / Publish
+
+on:
+  release:
+    types: [published]
+    # types: [created]
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node-version }} on ${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [14.x, 16.x, 18.x]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Install Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          # cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test
+
+  publish-npm:
+    name: Publish to NPM
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          # cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:coverage
+
+      # Save coverage report in Coveralls
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ./coverage/lcov.info
+
+      # - name: Codecov
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     directory: ./test/coverage/
+      #     # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+      #     # files: ./coverage1.xml,./coverage2.xml # optional
+      #     flags: unittests # optional
+      #     # path_to_write_report: ./coverage/codecov_report.txt
+      #     # fail_ci_if_error: true # optional (default = false)
+      #     verbose: true # optional (default = false)
+
+      - run: npm publish -w packages/core
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

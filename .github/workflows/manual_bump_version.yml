@@ -1,0 +1,51 @@
+name: Bump version
+
+on:
+  workflow_dispatch:
+    inputs:
+      semver:
+        description: 'Semver bump'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump-version:
+    name: Bump package ${{ inputs.semver }} version
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          registry-url: https://registry.npmjs.org/
+
+      - name: Set Git user
+        run: |
+          git config --global user.name 'vHeemstra'
+          git config --global user.email '17368112+vHeemstra@users.noreply.github.com'
+
+      - run: npm ci
+
+      - name: Major version
+        if: ${{ inputs.semver == 'major' }}
+        run: npm run bump:major
+      - name: Minor version
+        if: ${{ inputs.semver == 'minor' }}
+        run: npm run bump:minor
+      - name: Patch version
+        if: ${{ inputs.semver == 'patch' }}
+        run: npm run bump:patch

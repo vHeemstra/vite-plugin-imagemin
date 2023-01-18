@@ -1,0 +1,141 @@
+name: Lint / Test / Release
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node-version }} on ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [14.x, 16.x, 18.x]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Install Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test
+
+      - name: Preparing artifact filename
+        run: |
+          nodeos="${{ matrix.node-version }}-${{ matrix.os }}"
+          nodeos="matrix-${nodeos//./_}"
+          echo "FILENAME=$nodeos" >> $GITHUB_ENV
+          echo "FILENAME_TXT=${nodeos}.txt" >> $GITHUB_ENV
+      - name: Setting artifact content
+        run: |
+          s=':white_check_mark: '"Node ${{ matrix.node-version }}"
+          echo "$s" > ${{ env.FILENAME_TXT }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.FILENAME }}
+          path: ${{ env.FILENAME_TXT }}
+
+  release:
+    name: Create GitHub release
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          registry-url: https://registry.npmjs.org/
+
+      - name: Set Git user
+        run: |
+          git config --global user.name 'vHeemstra'
+          git config --global user.email '17368112+vHeemstra@users.noreply.github.com'
+
+      # - name: Set output
+      #   id: vars
+      #   run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+      # - name: Check output
+      #   env:
+      #     RELEASE_VERSION_VIA_OUTPUT: ${{ steps.vars.outputs.tag }}
+      #   run: |
+      #     echo $RELEASE_VERSION_VIA_OUTPUT
+      #     echo ${{ steps.vars.outputs.tag }}
+      # - name: Set env release version
+      #   run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      # - name: Check env
+      #   run: |
+      #     echo $RELEASE_VERSION
+      #     echo ${{ env.RELEASE_VERSION }}
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        # NOTE: if all artifacts are downloaded,
+        #       they will each put in their own folder.
+
+      - name: Merge artifact files
+        run: |
+          s="### Tested with:"$'\n'"$(cat matrix-**/matrix-*.txt)"$'\n\n'"---"
+          echo "$s" > matrix-all.txt
+
+      - name: Upload merged artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: matrix-all
+          path: matrix-all.txt
+
+      - name: Create GitHub release
+        run: |
+          gh release create $GITHUB_REF_NAME --generate-notes --draft --notes-file matrix-all.txt
+
+  cleanup:
+    name: Clean up
+    if: ${{ always() }}
+    needs: [test, release]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+    steps:
+      - name: Clean up artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            matrix-*
+          failOnError: false
+      # This action retreives an empty artifacts list, so it can't remove anything...
+      # - name: Clean up artifacts
+      #   uses: actions/github-script@v6
+      #   with:
+      #     # GITHUB_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+      #     github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+      #     script: |
+      #       const {GITHUB_RUN_ID, GITHUB_REPOSITORY} = process.env
+      #       const artifactsURL = `/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts`
+      #       console.log(`Deleting artifacs from ${artifactsURL}`)
+      #       const response = await github.request(`GET ${artifactsURL}`)
+      #       console.log(response.data)
+      #       for (artifact of response.data.artifacts) {
+      #         console.log(`Deleting artifact with name=${artifact.name}, id=${artifact.id}`)
+      #         const deleteResponse = await github.request(`DELETE /repos/${repo}/actions/artifacts/${artifact.id}`)
+      #       }

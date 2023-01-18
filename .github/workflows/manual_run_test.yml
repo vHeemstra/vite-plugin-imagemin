@@ -1,0 +1,50 @@
+name: Run lint and test
+
+on:
+  workflow_dispatch:
+    inputs:
+      node_versions:
+        description: 'Select Node versions'
+        required: true
+        default: '["14.x", "16.x", "18.x"]'
+        type: choice
+        options:
+          - '["14.x"]'
+          - '["16.x"]'
+          - '["18.x"]'
+          - '["16.x", "18.x"]'
+          - '["14.x", "16.x", "18.x"]'
+      os_version:
+        description: 'Select OS'
+        required: true
+        default: '["ubuntu-latest"]'
+        type: choice
+        options:
+          - '["ubuntu-latest"]'
+          - '["windows-latest"]'
+          - '["macos-latest"]'
+      fail_fast:
+        description: 'Use fail-fast'
+        required: true
+        type: boolean
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node-version }} on ${{ matrix.os }})
+    strategy:
+      fail-fast: ${{ inputs.fail_fast }}
+      matrix:
+        os: ${{ fromJSON(inputs.os_version) }}
+        node-version: ${{ fromJSON(inputs.node_versions) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Install Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test
