@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite build && vite preview",
     "preview:nobuild": "vite preview",
-    "serve:inspect": "serve .vite-inspect"
+    "serve:inspect": "serve --no-clipboard .vite-inspect"
   },
   "dependencies": {
     "react": "^18.2.0",

@@ -121,8 +121,6 @@ const getBuildConfig = (plugin, extraOptions = {}) =>
 const root = 'packages/playground'
 const skipBuilds = typeof process.env.VITEST_SKIP_BUILDS !== 'undefined'
 
-console.log(`skipBuilds: ${skipBuilds}`)
-
 const mockPlugin: Plugin = b => Promise.resolve(b)
 const mockFormatFilePath = (f: string) => `__${f}__`
 const mockLogger: Logger = {
@@ -133,7 +131,9 @@ const mockLogger: Logger = {
 
 describe('parsePlugins', () => {
   it('false on false, empty or invalid', () => {
+    // @ts-expect-error testing wrong argument type
     expect(parsePlugins(null)).toBe(false)
+    // @ts-expect-error testing wrong argument type
     expect(parsePlugins(undefined)).toBe(false)
     // @ts-expect-error testing wrong argument type
     expect(parsePlugins(false)).toBe(false)
@@ -142,7 +142,9 @@ describe('parsePlugins', () => {
     // @ts-expect-error testing wrong argument type
     expect(parsePlugins([])).toBe(false)
     expect(parsePlugins({})).toBe(false)
+    // @ts-expect-error testing wrong argument type
     expect(parsePlugins({ ext: null })).toBe(false)
+    // @ts-expect-error testing wrong argument type
     expect(parsePlugins({ ext: [null] })).toBe(false)
     // @ts-expect-error testing wrong argument type
     expect(parsePlugins({ ext: ['test', false] })).toBe(false)
@@ -197,7 +199,9 @@ describe('parseOptions', () => {
     })
 
     it('formatFilePath is default or valid callback', () => {
-      let options: ConfigOptions
+      let options: ConfigOptions & {
+        makeAvif: Exclude<ConfigOptions["makeAvif"], undefined>
+      }
       let parsedOptions: false | ResolvedConfigOptions
 
       options = Object.assign({}, base)
@@ -224,7 +228,9 @@ describe('parseOptions', () => {
     })
 
     it('skipIfLargerThan is false, string or default', () => {
-      let options: ConfigOptions
+      let options: ConfigOptions & {
+        makeAvif: Exclude<ConfigOptions["makeAvif"], undefined>
+      }
       let parsedOptions: false | ResolvedConfigOptions
       const defaultVal = 'optimized'
 
@@ -284,7 +290,9 @@ describe('parseOptions', () => {
     })
 
     it('formatFilePath is default or valid callback', () => {
-      let options: ConfigOptions
+      let options: ConfigOptions & {
+        makeWebp: Exclude<ConfigOptions["makeWebp"], undefined>
+      }
       let parsedOptions: false | ResolvedConfigOptions
 
       options = Object.assign({}, base)
@@ -311,7 +319,9 @@ describe('parseOptions', () => {
     })
 
     it('skipIfLargerThan is false, string or default', () => {
-      let options: ConfigOptions
+      let options: ConfigOptions & {
+        makeWebp: Exclude<ConfigOptions["makeWebp"], undefined>
+      }
       let parsedOptions: false | ResolvedConfigOptions
       const defaultVal = 'optimized'
 
@@ -740,7 +750,7 @@ describe('processFile', () => {
           duration: 0,
         },
       }
-      const expectedResults = []
+      const expectedResults: any[] = []
 
       // output file sizes
       ;[
