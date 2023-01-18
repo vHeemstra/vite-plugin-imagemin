@@ -1,7 +1,7 @@
 {
   "name": "@vheemstra/vite-plugin-imagemin",
   "description": "A vite plugin for compressing image assets",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "license": "MIT",
   "author": "Philip van Heemstra",
   "contributors": [
