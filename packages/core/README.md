@@ -1,5 +1,8 @@
 <h1 align="center">
-  <a target="_blank" rel="noopener noreferrer" href="https://github.com/vHeemstra/vite-plugin-imagemin/blob/main/packages/plugin-imagemin/src/logo.svg?raw=true"><img src="https://github.com/vHeemstra/vite-plugin-imagemin/raw/main/packages/plugin-imagemin/src/logo.svg?raw=true" alt="vite-plugin-imagemin - Vite + Imagemin" title="vite-plugin-imagemin - Vite + Imagemin" style="width: 75%; min-width: 280px; max-width: 800px; height: auto"></a>
+  <a target="_blank" rel="noopener noreferrer" href="https://github.com/vHeemstra/vite-plugin-imagemin/blob/main/packages/core/src/logo.svg?raw=true"><img src="https://github.com/vHeemstra/vite-plugin-imagemin/raw/main/packages/core/src/logo.svg?raw=true" alt="vite-plugin-imagemin - Vite + Imagemin" title="vite-plugin-imagemin - Vite + Imagemin" style="width: 75%; min-width: 280px; max-width: 800px; height: auto"></a><br>
+
+  [![GitHub release (latest SemVer)][release-image]][release-url] [![NPM version][npm-image]][npm-url] [![Build Status][ci-image]][ci-url] [![Coverall Coverage Status][coverage-image]][coverage-url]
+
 </h1>
 
 > Minify bundled asset and static images in your Vite build with **Imagemin**.
@@ -239,3 +242,15 @@ _Adopted from answers given [here](https://stackoverflow.com/a/68967381/2142071)
 - [imagemin-webp](https://github.com/imagemin/imagemin-webp)
 - [imagemin-gif2webp](https://github.com/imagemin/imagemin-gif2webp)
 - [@vheemstra/imagemin-avifenc](https://github.com/vHeemstra/imagemin-avifenc)
+
+[release-url]: https://github.com/vHeemstra/vite-plugin-imagemin/releases
+[release-image]: https://img.shields.io/github/v/release/vHeemstra/vite-plugin-imagemin?sort=semver&logo=github&logoColor=959DA5&labelColor=444D56
+
+[npm-url]: https://www.npmjs.com/package/@vheemstra/vite-plugin-imagemin
+[npm-image]: https://img.shields.io/npm/v/@vheemstra/vite-plugin-imagemin.svg?color=cb0000&labelColor=444D56&logo=data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBmaWxsPSIjOTU5REE1IiBkPSJNMS43NjMgMEMuNzg2IDAgMCAuNzg2IDAgMS43NjN2MjAuNDc0QzAgMjMuMjE0Ljc4NiAyNCAxLjc2MyAyNGgyMC40NzRjLjk3NyAwIDEuNzYzLS43ODYgMS43NjMtMS43NjNWMS43NjNDMjQgLjc4NiAyMy4yMTQgMCAyMi4yMzcgMHpNNS4xMyA1LjMyM2wxMy44MzcuMDE5LS4wMDkgMTMuODM2aC0zLjQ2NGwuMDEtMTAuMzgyaC0zLjQ1NkwxMi4wNCAxOS4xN0g1LjExM3oiPjwvcGF0aD48L3N2Zz4=
+
+[ci-url]: https://github.com/vHeemstra/vite-plugin-imagemin/actions/workflows/publish_on_release.yml
+[ci-image]: https://img.shields.io/github/actions/workflow/status/vHeemstra/vite-plugin-imagemin/publish_on_release.yml?branch=main&label=lint%20%26%20test&logo=github&logoColor=959DA5&labelColor=444D56
+
+[coverage-url]: https://coveralls.io/github/vHeemstra/vite-plugin-imagemin?branch=main
+[coverage-image]: https://img.shields.io/coveralls/github/vHeemstra/vite-plugin-imagemin?logo=coveralls&logoColor=959DA5&labelColor=444D56
