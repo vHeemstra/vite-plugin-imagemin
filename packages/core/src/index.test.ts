@@ -1136,12 +1136,12 @@ describe('logResults', () => {
     expect(spy.mock.results[1].value).toMatch(
       /* eslint-disable-next-line no-control-regex */
       // /\u001b\[32m/, // green
-      /dist\/to\.ext.+90 KiB.+-10.00 %.+100 ms/,
+      /dist\/.*to\.ext.+90 KiB.+-10 %.+100 ms/,
     )
     expect(spy.mock.results[2].value).toMatch(
       /* eslint-disable-next-line no-control-regex */
       // /\u001b\[33m/, // yellow
-      /dist\/to\.ext.+110 KiB.+\+10.00 %.+100 ms/,
+      /dist\/.*to\.ext.+110 KiB.+\+10 %.+100 ms/,
     )
     // expect(spy.mock.results[2].value).toMatch(
     //   /* eslint-disable-next-line no-control-regex */
@@ -1152,21 +1152,21 @@ describe('logResults', () => {
     //   /\u001b\[3[1-3]m/, // red, green or yellow
     // )
     expect(spy.mock.results[3].value).toMatch(
-      /dist\/to\.ext.+100 KiB.+0.00 %.+100 ms/,
+      /dist\/.*to\.ext.+100 KiB.+0 %.+100 ms/,
     )
     // expect(spy.mock.results[4].value).not.toMatch(
     //   /* eslint-disable-next-line no-control-regex */
     //   /\u001b\[3[1-3]m/, // red, green or yellow
     // )
     expect(spy.mock.results[4].value).toMatch(
-      /dist\/to\.ext\.avif.+ │ Skipped │ Larger than optimized/,
+      /dist\/.*to\.ext\.avif.+ │ Skipped │ Larger than optimized/,
     )
     // expect(spy.mock.results[5].value).not.toMatch(
     //   /* eslint-disable-next-line no-control-regex */
     //   /\u001b\[3[1-3]m/, // red, green or yellow
     // )
     expect(spy.mock.results[5].value).toMatch(
-      /dist\/to\.ext\.webp.+ │ Skipped │ Larger than smallest/,
+      /dist\/.*to\.ext\.webp.+ │ Skipped │ Larger than smallest/,
     )
   })
 })
