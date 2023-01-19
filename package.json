@@ -23,8 +23,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w packages/core",
-    "build": "npm run build -w packages/core",
+    "dev": "npm run dev -w core",
+    "build": "npm run build -w core",
     "format": "prettier --write",
     "format:cache": "prettier --write --cache .",
     "lint": "eslint",
@@ -47,9 +47,9 @@
     "playground:build:inspect": "run-s playground:build playground:inspect",
     "playground:preview": "npm run preview -w playground",
     "playground:preview:nobuild": "npm run preview:nobuild -w playground",
-    "bump:patch": "npm version patch -m \"Patch version %s\" -w packages/core",
-    "bump:minor": "npm version minor -m \"Minor version %s\" -w packages/core",
-    "bump:major": "npm version major -m \"Major version %s\" -w packages/core",
+    "bump:patch": "npm version patch -m \"Patch version %s\" -w core",
+    "bump:minor": "npm version minor -m \"Minor version %s\" -w core",
+    "bump:major": "npm version major -m \"Major version %s\" -w core",
     "preversion": "npm run lint && npm run build && npm run test",
     "version": "git add .",
     "postversion": "git push --follow-tags"
