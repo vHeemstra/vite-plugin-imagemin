@@ -2,7 +2,7 @@
   "name": "@vheemstra/vite-plugin-imagemin-monorepo",
   "private": true,
   "engines": {
-    "node": "^14.18.0 || >=16.0.0"
+    "node": ">=16.0.0"
   },
   "type": "module",
   "homepage": "https://github.com/vheemstra/vite-plugin-imagemin#readme",
