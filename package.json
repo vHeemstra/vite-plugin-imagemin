@@ -1,6 +1,6 @@
 {
   "name": "@vheemstra/vite-plugin-imagemin-monorepo",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "engines": {
     "node": ">=16.0.0"
