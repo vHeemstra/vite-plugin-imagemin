@@ -61,6 +61,6 @@ jobs:
       #     # fail_ci_if_error: true # optional (default = false)
       #     verbose: true # optional (default = false)
 
-      - run: npm publish --workspace=core
+      - run: npm publish --workspace=packages/core
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
