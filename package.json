@@ -47,12 +47,12 @@
     "playground:build:inspect": "run-s playground:build playground:inspect",
     "playground:preview": "npm run preview --workspace=packages/playground",
     "playground:preview:nobuild": "npm run preview:nobuild --workspace=packages/playground",
-    "bump:patch": "npm version patch -m \"Patch version %s\" --workspace=packages/core",
-    "bump:minor": "npm version minor -m \"Minor version %s\" --workspace=packages/core",
-    "bump:major": "npm version major -m \"Major version %s\" --workspace=packages/core",
-    "preversion": "npm run lint && npm run build && npm run test",
-    "version": "git add .",
-    "postversion": "git push --follow-tags"
+    "bump:patch": "run-s lint build test version:patch",
+    "bump:minor": "run-s lint build test version:minor",
+    "bump:major": "run-s lint build test version:major",
+    "version:patch": "npm version patch -m \"Patch version %s\" --workspace=packages/core",
+    "version:minor": "npm version minor -m \"Minor version %s\" --workspace=packages/core",
+    "version:major": "npm version major -m \"Major version %s\" --workspace=packages/core"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.48.2",

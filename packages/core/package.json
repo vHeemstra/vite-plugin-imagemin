@@ -55,6 +55,8 @@
     "dev": "cross-env NODE_ENV=development tsup",
     "build": "cross-env NODE_ENV=production tsup",
     "typecheck": "tsc --noEmit",
+    "version": "git add .",
+    "postversion": "git push --follow-tags",
     "prepublishOnly": "npm run build"
   },
   "engines": {
