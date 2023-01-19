@@ -1,0 +1,82 @@
+{
+  "name": "@vheemstra/vite-plugin-imagemin",
+  "description": "A vite plugin for compressing image assets",
+  "version": "1.0.0",
+  "license": "MIT",
+  "keywords": [
+    "vite",
+    "vite-plugin",
+    "imagemin",
+    "minify",
+    "compress",
+    "jpg",
+    "png",
+    "gif",
+    "svg",
+    "webp",
+    "avif"
+  ],
+  "author": {
+    "name": "Philip van Heemstra",
+    "email": "vanheemstra@gmail.com",
+    "url": "https://github.com/vheemstra"
+  },
+  "maintainers": [
+    {
+      "name": "Philip van Heemstra",
+      "email": "vanheemstra@gmail.com",
+      "url": "https://github.com/vheemstra"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Philip van Heemstra",
+      "email": "vanheemstra@gmail.com",
+      "url": "https://github.com/vheemstra"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vheemstra/vite-plugin-imagemin.git",
+    "directory": "packages/plugin-imagemin"
+  },
+  "bugs": {
+    "url": "https://github.com/vheemstra/vite-plugin-imagemin/issues"
+  },
+  "homepage": "https://github.com/vheemstra/vite-plugin-imagemin#readme",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": "./dist/index.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development tsup",
+    "build": "cross-env NODE_ENV=production tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "fast-glob": "^3.2.12",
+    "fs-extra": "^11.1.0",
+    "imagemin": "^8.0.1",
+    "is-apng": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.13",
+    "@types/imagemin": "^8.0.0",
+    "@types/node": "^18.11.18",
+    "cross-env": "^7.0.3",
+    "i": "^0.3.7",
+    "tsup": "^6.5.0",
+    "typescript": "^4.9.4"
+  },
+  "peerDependencies": {
+    "vite": "^3.0.0 || ^4.0.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    // "types": ["vitest/globals"],
+    // added for VSCode typescript suggestions
+    "module": "es2020",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true
+  }
+  // "include": ["packages/core"],
+  // "exclude": ["**/*.spec.ts", "**/*.test.ts"],
+  // "references": [
+  //   { "path": "./packages/core" },
+  //   { "path": "./packages/playground" }
+  // ]
+}

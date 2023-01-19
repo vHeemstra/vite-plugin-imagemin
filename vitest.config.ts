@@ -1,27 +1,43 @@
-import { mergeConfig } from 'vite'
-import {
-  // configDefaults,
-  defineConfig,
-} from 'vitest/config'
-import viteConfig from './playground/vite.config'
+// Configure Vite (https://vitejs.dev/config/)
+// Configure Vitest (https://vitest.dev/config/)
 
-export default mergeConfig(
-  viteConfig,
-  defineConfig({
-    test: {
-      include: [
-        'packages/plugin-imagemin/src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+import {
+  defineConfig,
+  // configDefaults,
+} from 'vitest/config'
+import GithubActionsReporter from 'vitest-github-actions-reporter'
+
+export default defineConfig({
+  test: {
+    // globals: true,
+    // environment: 'happy-dom',
+    include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    dir: 'packages/core/src',
+    // exclude: [...configDefaults.exclude, 'other/*', 'packages/playground/*'],
+    testTimeout: 5000,
+    globalSetup: ['./vitestGlobalSetup.ts'],
+    reporters: process.env.GITHUB_ACTIONS
+      ? ['default', new GithubActionsReporter()]
+      : 'default',
+    coverage: {
+      enabled: true,
+      // provider: 'c8',
+      // allowExternal: true,
+      //
+      provider: 'istanbul',
+      all: true,
+      include: ['**/packages/core/src/**'],
+      reporter: [
+        'html-spa',
+        // 'html',
+        'text',
+        // 'clover',
+        'lcov',
+        // 'json',
       ],
-      // exclude: [...configDefaults.exclude, './other/*', './playground/*'],
-      testTimeout: 5000,
-      globalSetup: ['./vitest.global-setup.js'],
-      coverage: {
-        all: true,
-        include: ['packages/plugin-imagemin/src/**'],
-        reportsDirectory: './test/coverage',
-        provider: 'istanbul',
-        // Add Vitest UI ? (https://vitest.dev/guide/ui.html)
-      },
+      reportsDirectory: './coverage',
+      clean: true,
+      cleanOnRerun: true,
     },
-  }),
-)
+  },
+})

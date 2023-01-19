@@ -1,0 +1,20 @@
+{
+  "include": ["src", "@types"],
+  "exclude": ["**/*.spec.ts", "**/*.test.ts"],
+  "compilerOptions": {
+    // "composite": true,
+    "rootDir": "./",
+    "outDir": "dist",
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "Node",
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    // "types": ["node", "vite", "vite/client"],
+    "typeRoots": ["node_modules/@types", "@types"]
+  }
+}
