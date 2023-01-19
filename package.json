@@ -1,5 +1,6 @@
 {
   "name": "@vheemstra/vite-plugin-imagemin-monorepo",
+  "version": "1.0.1",
   "private": true,
   "engines": {
     "node": ">=16.0.0"
@@ -50,9 +51,11 @@
     "bump:patch": "run-s lint build test version:patch",
     "bump:minor": "run-s lint build test version:minor",
     "bump:major": "run-s lint build test version:major",
-    "version:patch": "npm version patch -m \"Patch version %s\" --workspace=packages/core",
-    "version:minor": "npm version minor -m \"Minor version %s\" --workspace=packages/core",
-    "version:major": "npm version major -m \"Major version %s\" --workspace=packages/core"
+    "version:patch": "npm version patch -m \"Patch version %s\"",
+    "version:minor": "npm version minor -m \"Minor version %s\"",
+    "version:major": "npm version major -m \"Major version %s\"",
+    "version": "git add .",
+    "postversion": "git push --follow-tags"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.48.2",

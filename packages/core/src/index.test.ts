@@ -1535,11 +1535,11 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
         include: /images\/animated-transparent-2\.gif$/i,
         skipIfLarger: false,
         plugins: {
-          gif: [imageminGifsicle()],
-          // gif: [
-          //   (b: Buffer) =>
-          //     Promise.resolve(Buffer.concat([b, Buffer.from('more')])),
-          // ],
+          // gif: [imageminGifsicle()],
+          gif: [
+            (b: Buffer) =>
+              Promise.resolve(Buffer.concat([b, Buffer.from('more')])),
+          ],
         },
         logger: mockLogger,
       }
