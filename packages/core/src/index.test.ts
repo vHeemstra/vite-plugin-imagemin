@@ -1147,9 +1147,11 @@ describe('logResults', () => {
     //   /* eslint-disable-next-line no-control-regex */
     //   // /\u001b\[31m/, // red
     // )
-    expect(spy.mock.results[3].value).not.toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[3[1-3]m/, // red, green or yellow
+    // expect(spy.mock.results[3].value).not.toMatch(
+    //   /* eslint-disable-next-line no-control-regex */
+    //   /\u001b\[3[1-3]m/, // red, green or yellow
+    // )
+    expect(spy.mock.results[3].value).toMatch(
       /dist\/to\.ext.+100 KiB.+0 %.+100 ms/,
     )
     // expect(spy.mock.results[4].value).not.toMatch(
