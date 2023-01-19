@@ -51,9 +51,9 @@
     "bump:patch": "run-s lint build test version:patch",
     "bump:minor": "run-s lint build test version:minor",
     "bump:major": "run-s lint build test version:major",
-    "version:patch": "npm version patch -m \"Patch version %s\"",
-    "version:minor": "npm version minor -m \"Minor version %s\"",
-    "version:major": "npm version major -m \"Major version %s\"",
+    "version:patch": "npm version patch -m \"Patch version %s\" --workspaces --include-workspace-root",
+    "version:minor": "npm version minor -m \"Minor version %s\" --workspaces --include-workspace-root",
+    "version:major": "npm version major -m \"Major version %s\" --workspaces --include-workspace-root",
     "version": "git add .",
     "postversion": "git push --follow-tags"
   },
