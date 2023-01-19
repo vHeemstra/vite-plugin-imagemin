@@ -38,7 +38,7 @@ jobs:
           git config --global user.name 'vHeemstra'
           git config --global user.email '17368112+vHeemstra@users.noreply.github.com'
 
-      - run: npm ci
+      - run: npm install
 
       - name: Major version
         if: ${{ inputs.semver == 'major' }}
