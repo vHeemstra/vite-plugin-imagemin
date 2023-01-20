@@ -1406,7 +1406,6 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       // ]).toBe(false)
 
       const options = {
-        // verbose: false,
         plugins: {
           png: [imageminPngquant()],
           jpg: imageminMozjpeg(),
@@ -1471,7 +1470,6 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       const distDir = `${tempDir}/dist`
 
       const options = {
-        // verbose: false,
         logByteDivider: 1024 as const,
         include: /images\/transparent-1\.png$/i,
         plugins: {
@@ -1592,6 +1590,36 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       const distDir = `${tempDir}/dist`
 
       const options = {
+        include: /images\/animated-transparent-2\.gif$/i,
+        skipIfLarger: false,
+        plugins: {
+          gif: [mockPlugin],
+        },
+      }
+
+      const testConfig = getBuildConfig(viteImagemin(options), {
+        build: {
+          outDir: normalizePath(relative(root, distDir)),
+        },
+      })
+
+      await expect(build(testConfig)).resolves.toHaveProperty('output')
+
+      expect(existsSync(distDir)).toBe(true)
+    },
+    {
+      timeout: 10000,
+    },
+  )
+
+  it(
+    'non-verbose-equal-sized config',
+    async ({ meta, expect }) => {
+      const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
+      const distDir = `${tempDir}/dist`
+
+      const options = {
+        verbose: false,
         include: /images\/animated-transparent-2\.gif$/i,
         skipIfLarger: false,
         plugins: {
