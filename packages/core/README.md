@@ -252,5 +252,5 @@ _Adopted from answers given [here](https://stackoverflow.com/a/68967381/2142071)
 [ci-url]: https://github.com/vHeemstra/vite-plugin-imagemin/actions/workflows/publish_on_release.yml
 [ci-image]: https://img.shields.io/github/actions/workflow/status/vHeemstra/vite-plugin-imagemin/publish_on_release.yml?label=lint%20%26%20test&logo=github&logoColor=959DA5&labelColor=444D56
 
-[coverage-url]: https://coveralls.io/github/vHeemstra/vite-plugin-imagemin?branch=main
+[coverage-url]: https://coveralls.io/github/vHeemstra/vite-plugin-imagemin
 [coverage-image]: https://img.shields.io/coveralls/github/vHeemstra/vite-plugin-imagemin?logo=coveralls&logoColor=959DA5&labelColor=444D56
