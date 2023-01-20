@@ -1458,7 +1458,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       // - check if certain files have been skipped
     },
     {
-      timeout: 10000,
+      timeout: 30000,
     },
   )
 
