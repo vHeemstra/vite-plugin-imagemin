@@ -1466,11 +1466,12 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
   it(
     'only-smallest config',
     async ({ meta, expect }) => {
+      // const spy = vi.spyOn(mockLogger, 'info')
       const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
       const distDir = `${tempDir}/dist`
 
       const options = {
-        verbose: false,
+        // verbose: false,
         logByteDivider: 1024 as const,
         include: /images\/transparent-1\.png$/i,
         plugins: {
@@ -1494,6 +1495,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
           },
           skipIfLargerThan: 'smallest' as const,
         },
+        logger: mockLogger,
       }
 
       const testConfig = getBuildConfig(viteImagemin(options), {
@@ -1512,6 +1514,14 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       // const fileContentBuffer = readFileSync(filepath);
       // const fileContentString = readFileSync(filepath, {encoding: 'utf8', flag: 'r'});
       expect(existsSync(distDir)).toBe(true)
+
+      // expect(spy).not.toHaveBeenCalled()
+      // expect(spy).toHaveBeenCalledTimes(8)
+      // expect(spy.mock.results[3].value).toMatch(
+      //   /* eslint-disable-next-line no-control-regex */
+      //   // /\u001b\[33manimated-transparent-2.gif/, // yellow
+      //   /animated-transparent-2.gif.+\+\d+(\.\d+)? %/, // yellow
+      // )
 
       // TODO:
       // - check log output
