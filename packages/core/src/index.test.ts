@@ -42,9 +42,9 @@ import viteImagemin, {
 import imageminMozjpeg from 'imagemin-mozjpeg'
 // import imageminJpegtran from 'imagemin-jpegtran'
 // import imageminJpegoptim from 'imagemin-jpegoptim'
-import imageminPngquant from 'imagemin-pngquant'
+// import imageminPngquant from 'imagemin-pngquant'
 // import imageminOptipng from 'imagemin-optipng'
-// import imageminOxipng from '@vheemstra/imagemin-oxipng'
+import imageminOxipng from '@vheemstra/imagemin-oxipng'
 import imageminGifsicle from 'imagemin-gifsicle'
 import imageminSvgo from 'imagemin-svgo'
 import imageminWebp from 'imagemin-webp'
@@ -661,7 +661,10 @@ describe('processFile', () => {
           {
             toPath: 'test/ignore.png',
             plugins: [
-              // imageminPngquant(),
+              // imageminOxipng({
+              //   optimization: 4,
+              //   strip: 'safe',
+              // }),
               () => Promise.reject(new Error('Test')),
               // () => {
               //   throw new Error('Test')
@@ -687,7 +690,10 @@ describe('processFile', () => {
           {
             toPath: 'test/ignore.png',
             plugins: [
-              // imageminPngquant(),
+              // imageminOxipng({
+              //   optimization: 4,
+              //   strip: 'safe',
+              // }),
               () => Promise.reject('WARN: Test error processing file'),
               // () => {
               //   throw 'WARN: Test error processing file'
@@ -1407,7 +1413,12 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
       const options = {
         plugins: {
-          png: [imageminPngquant()],
+          png: [
+            imageminOxipng({
+              optimization: 4,
+              strip: 'safe',
+            }),
+          ],
           jpg: imageminMozjpeg(),
           gif: imageminGifsicle(),
           svg: imageminSvgo(),
@@ -1473,7 +1484,12 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
         logByteDivider: 1024 as const,
         include: /images\/transparent-1\.png$/i,
         plugins: {
-          png: [imageminPngquant()],
+          png: [
+            imageminOxipng({
+              optimization: 4,
+              strip: 'safe',
+            }),
+          ],
           jpg: imageminMozjpeg(),
           gif: imageminGifsicle(),
           svg: imageminSvgo(),
@@ -1653,7 +1669,12 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
         logByteDivider: 1024 as const,
         include: /\.none$/i,
         plugins: {
-          png: [imageminPngquant()],
+          png: [
+            imageminOxipng({
+              optimization: 4,
+              strip: 'safe',
+            }),
+          ],
         },
       }
 
