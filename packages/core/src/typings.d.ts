@@ -175,6 +175,7 @@ export type ProcessedFile = {
   newSizeString: string
   ratioString: string
   durationString: string
+  optimizedDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']
   avifDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']
   webpDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']
 }

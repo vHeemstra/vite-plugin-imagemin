@@ -220,8 +220,25 @@ export async function processFile({
       //    - user-supplied plugin + options
       //    ? pngquant fallback
       //  - apng-asm (strip to apng)
-      if (filePathFrom.endsWith('.png') && isAPNG(buffer)) {
+      if (filePathFrom.match(/\.a?png$/i) && isAPNG(buffer)) {
+        /**
+         * TODO:
+         * - apngdis the input APNG, then:
+         * - if output path .png: make strip + run plugins + apngasm from strip + output
+         * - if output path .webp: plugin each frame + run frames through webpmux-bin + single .webp output
+         *
+         * @see C:\Users\phili\Desktop\APNG\test\index.js
+         */
         throw new Error('SKIP: Animated PNGs not supported')
+
+        // Copy input to tmp dir .png
+
+        // apngdis-bin: this file to frame `.png`s
+
+        // convert/optimize each .png to .webp
+
+        // webpmux-bin: combine all .webp to final .webp
+
         // // const fileString = buffer.toString('utf8')
         // const idatIdx = buffer.indexOf('IDAT')
         // const actlIdx = buffer.indexOf('acTL')
@@ -246,7 +263,8 @@ export async function processFile({
             .buffer(oldBuffer, { plugins: item.plugins })
             .catch(e =>
               Promise.reject(
-                e.message ? `Error processing file [${e.message}]` : e,
+                // e.message ? `Error processing file [${e.message}]` : e,
+                e.message ? `Error processing file:\n${e.message}` : e,
               ),
             )
             .then(buffer2 => {
@@ -254,7 +272,14 @@ export async function processFile({
               newSize = newBuffer.byteLength
 
               if (false !== item.skipIfLarger && newSize > oldSize) {
-                throw new Error('SKIP: Output is larger')
+                // throw new Error('SKIP: Output is larger')
+                if (filePathTo === filePathFrom) {
+                  // NOTE:
+                  // If this optimized file is larger than original
+                  // and this is not a WebP/Avif version;
+                  // don't overwrite the original, but do continue (to have it log with the rest).
+                  return Promise.resolve()
+                }
               }
 
               // const newDirectory = path.dirname(baseDir + filePathTo)
@@ -463,9 +488,11 @@ export function logResults(
       ),
     )
 
+    file.optimizedDeleted =
+      !basenameTo.match(/\.(webp|avif)$/i) && file.optimizedDeleted
     file.webpDeleted = basenameTo.endsWith('.webp') && file.webpDeleted
     file.avifDeleted = basenameTo.endsWith('.avif') && file.avifDeleted
-    if (file.webpDeleted || file.avifDeleted) {
+    if (file.optimizedDeleted || file.webpDeleted || file.avifDeleted) {
       // Skipped file
       logArray.push(
         // Filename
@@ -488,7 +515,9 @@ export function logResults(
         //   ? chalk.red(file.ratioString)
         //   : file.ratioString,
         chalk.dim(
-          ` │ Skipped │ Larger than ${file.webpDeleted || file.avifDeleted}`,
+          ` │ Skipped │ Larger than ${
+            file.optimizedDeleted || file.webpDeleted || file.avifDeleted
+          }`,
         ),
       )
     } else {
@@ -642,12 +671,8 @@ export function logErrors(
 }
 
 export default function viteImagemin(_options: ConfigOptions): PluginOption {
-  const pluginSignature = [
-    // chalk.yellowBright('⚡'),
-    // chalk.blueBright('vite-plugin-imagemin'),
-    chalk.yellow('⚡'),
-    chalk.cyan('vite-plugin-imagemin'),
-  ].join('')
+  const pluginSignature =
+    chalk.yellow('⚡') + chalk.cyan('vite-plugin-imagemin')
 
   const options = parseOptions(_options)
   if (!options) {
@@ -849,6 +874,18 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
         Object.keys(processedFiles)
           .sort((a, b) => a.localeCompare(b)) // TODO: sort by (sub)folder and depth?
           .forEach(k => {
+            // Report optimized version as skipped if larger than original
+            const optimizedVersionIdx = processedFiles[k].findIndex(
+              f => !f.newPath.match(/\.(webp|avif)$/i),
+            )
+            if (options.skipIfLarger && optimizedVersionIdx >= 0) {
+              const optimizedVersion = processedFiles[k][optimizedVersionIdx]
+              if (optimizedVersion.ratio > 0) {
+                processedFiles[k][optimizedVersionIdx].optimizedDeleted =
+                  'original'
+              }
+            }
+
             // Delete WebP version if larger than other optimized version
             const webpVersionIdx = processedFiles[k].findIndex(f =>
               f.newPath.endsWith('.webp'),
@@ -916,6 +953,14 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
                   options.makeAvif.skipIfLargerThan
               }
             }
+
+            // Subtract size from total if skipped
+            processedFiles[k].forEach(f => {
+              if (f.optimizedDeleted || f.webpDeleted || f.avifDeleted) {
+                totalSize.from -= f.oldSize
+                totalSize.to -= f.newSize
+              }
+            })
 
             logResults(processedFiles[k], logger, maxLengths)
           })

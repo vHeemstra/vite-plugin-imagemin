@@ -1,14 +1,4 @@
-import {
-  describe,
-  expect,
-  it,
-  // beforeEach,
-  afterEach,
-  // beforeAll,
-  // afterAll,
-  vi,
-  beforeEach,
-} from 'vitest'
+import { describe, expect, it, afterEach, vi, beforeEach } from 'vitest'
 import { mergeConfig, build, normalizePath, UserConfig } from 'vite'
 import {
   existsSync,
@@ -810,12 +800,19 @@ describe('processFile', () => {
             value: expect.objectContaining(fullfilledResult),
           })
         } else {
+          // TODO: rewrite different test? (or remove this one)
+          //       - that checks the logs for skipped files
+          //       - and/or checks that original file has not changed (when output is larger)
+          // expectedResults.push({
+          //   status: 'rejected',
+          //   reason: expect.objectContaining({
+          //     error: 'Output is larger',
+          //     errorType: 'skip',
+          //   }),
+          // })
           expectedResults.push({
-            status: 'rejected',
-            reason: expect.objectContaining({
-              error: 'Output is larger',
-              errorType: 'skip',
-            }),
+            status: 'fulfilled',
+            value: expect.objectContaining(fullfilledResult),
           })
         }
       })
@@ -900,6 +897,7 @@ describe('processResults', () => {
               newSizeString: '1 kB',
               ratioString: '0.00 %',
               durationString: '50 ms',
+              optimizedDeleted: 'optimized',
               avifDeleted: 'optimized',
               webpDeleted: 'optimized',
             },
@@ -917,6 +915,7 @@ describe('processResults', () => {
               newSizeString: '10 kB',
               ratioString: '+900.00 %',
               durationString: '500 ms',
+              optimizedDeleted: false,
               avifDeleted: false,
               webpDeleted: false,
             },
@@ -934,6 +933,7 @@ describe('processResults', () => {
               newSizeString: '1 kB',
               ratioString: '0.00 %',
               durationString: '50 ms',
+              optimizedDeleted: 'optimized',
               avifDeleted: 'optimized',
               webpDeleted: 'optimized',
             },
@@ -969,6 +969,7 @@ describe('processResults', () => {
             newSizeString: '1 kB',
             ratioString: '0.00 %',
             durationString: '50 ms',
+            optimizedDeleted: 'optimized',
             avifDeleted: 'optimized',
             webpDeleted: 'optimized',
           },
@@ -983,6 +984,7 @@ describe('processResults', () => {
             newSizeString: '10 kB',
             ratioString: '+900.00 %',
             durationString: '500 ms',
+            optimizedDeleted: false,
             avifDeleted: false,
             webpDeleted: false,
           },
@@ -999,6 +1001,7 @@ describe('processResults', () => {
             newSizeString: '1 kB',
             ratioString: '0.00 %',
             durationString: '50 ms',
+            optimizedDeleted: 'optimized',
             avifDeleted: 'optimized',
             webpDeleted: 'optimized',
           },
@@ -1065,6 +1068,7 @@ describe('logResults', () => {
           newSizeString: '90 KiB',
           ratioString: '-10 %',
           durationString: '100 ms',
+          optimizedDeleted: false,
           avifDeleted: false,
           webpDeleted: false,
         },
@@ -1079,6 +1083,7 @@ describe('logResults', () => {
           newSizeString: '110 KiB',
           ratioString: '+10 %',
           durationString: '100 ms',
+          optimizedDeleted: false,
           avifDeleted: false,
           webpDeleted: false,
         },
@@ -1093,6 +1098,7 @@ describe('logResults', () => {
           newSizeString: '100 KiB',
           ratioString: '0 %',
           durationString: '100 ms',
+          optimizedDeleted: false,
           avifDeleted: false,
           webpDeleted: false,
         },
@@ -1107,6 +1113,7 @@ describe('logResults', () => {
           newSizeString: '100 KiB',
           ratioString: '0 %',
           durationString: '100 ms',
+          optimizedDeleted: false,
           avifDeleted: 'optimized',
           webpDeleted: false,
         },
@@ -1121,6 +1128,7 @@ describe('logResults', () => {
           newSizeString: '100 KiB',
           ratioString: '0 %',
           durationString: '100 ms',
+          optimizedDeleted: false,
           avifDeleted: false,
           webpDeleted: 'smallest',
         },
