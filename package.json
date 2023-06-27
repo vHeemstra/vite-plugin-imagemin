@@ -71,7 +71,6 @@
     "imagemin-avif": "^0.1.4",
     "imagemin-gif2webp": "^3.0.0",
     "imagemin-gifsicle": "^7.0.0",
-    "imagemin-jpegtran": "^7.0.0",
     "imagemin-mozjpeg": "^10.0.0",
     "imagemin-optipng": "^8.0.0",
     "imagemin-pngquant": "^9.0.2",
