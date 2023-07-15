@@ -14,6 +14,8 @@ jobs:
         node-version: [16.x, 18.x]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Set up NASM (for imagemin binary builds)
+        uses: ilammy/setup-nasm@v1
       - name: Check out repository
         uses: actions/checkout@v3
       - name: Install Node.js ${{ matrix.node-version }}
@@ -31,6 +33,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - name: Set up NASM (for imagemin binary builds)
+        uses: ilammy/setup-nasm@v1
       - name: Check out repository
         uses: actions/checkout@v3
       - name: Install Node.js

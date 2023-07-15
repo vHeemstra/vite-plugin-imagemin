@@ -21,6 +21,8 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Set up NASM (for imagemin binary builds)
+        uses: ilammy/setup-nasm@v1
       - name: Check out repository
         uses: actions/checkout@v3
         with:
