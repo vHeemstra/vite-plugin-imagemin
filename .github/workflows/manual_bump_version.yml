@@ -40,7 +40,7 @@ jobs:
           git config --global user.name 'vHeemstra'
           git config --global user.email '17368112+vHeemstra@users.noreply.github.com'
 
-      - run: npm install
+      - run: npm ci
 
       - name: Major version
         if: ${{ inputs.semver == 'major' }}
@@ -53,7 +53,7 @@ jobs:
         run: npm run bump:patch
 
       - name: Archive npm failure logs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: npm-logs
