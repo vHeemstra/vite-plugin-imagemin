@@ -51,3 +51,10 @@ jobs:
       - name: Patch version
         if: ${{ inputs.semver == 'patch' }}
         run: npm run bump:patch
+
+      - name: Archive npm failure logs
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: npm-logs
+          path: ~/.npm/_logs
