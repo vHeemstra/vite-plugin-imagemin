@@ -38,6 +38,8 @@ jobs:
         node-version: ${{ fromJSON(inputs.node_versions) }}
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Set up NASM (for imagemin binary builds)
+        uses: ilammy/setup-nasm@v1
       - name: Check out repository
         uses: actions/checkout@v3
       - name: Install Node.js ${{ matrix.node-version }}
