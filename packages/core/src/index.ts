@@ -1,5 +1,10 @@
 import path from 'node:path'
-import { lstatSync, readdirSync, unlinkSync /*, rmSync */ } from 'node:fs'
+import {
+  existsSync,
+  lstatSync,
+  readdirSync,
+  unlinkSync /*, rmSync */,
+} from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { Buffer } from 'node:buffer'
 import { performance } from 'node:perf_hooks'
@@ -7,6 +12,8 @@ import chalk from 'chalk'
 import { normalizePath, createFilter } from 'vite'
 import imagemin from 'imagemin'
 import isAPNG from 'is-apng'
+import { createCache } from '@file-cache/core'
+
 import {
   isFunction,
   isBoolean,
@@ -34,6 +41,7 @@ import type {
   ProcessResult,
   ProcessFileReturn,
 } from './typings'
+import { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
 
 export const parsePlugins = (rawPlugins: PluginsConfig) => {
   let plugins: false | ResolvedPluginsConfig = false
@@ -131,6 +139,7 @@ export const parseOptions = (
     skipIfLarger: isBoolean(_options?.skipIfLarger)
       ? _options.skipIfLarger
       : true,
+    cache: isBoolean(_options?.cache) ? _options.cache : true,
     plugins,
     makeAvif,
     makeWebp,
@@ -179,6 +188,7 @@ export async function processFile({
   precisions,
   bytesDivider,
   sizeUnit,
+  cache,
 }: ProcessFileParams): ProcessFileReturn {
   // const start = performance.now()
 
@@ -198,6 +208,23 @@ export async function processFile({
       error: 'Empty to-stack',
       errorType: 'error',
     }) as Promise<ErroredFile>
+  }
+
+  const result = await cache.getAndUpdateCache(baseDir + filePathFrom)
+  if (!result.changed) {
+    // just to be sure the outputs (still) exists
+    const outputExists = fileToStack.every(item => {
+      return existsSync(baseDir + item.toPath)
+    })
+
+    if (outputExists) {
+      return Promise.reject({
+        oldPath: filePathFrom,
+        newPath: fileToStack[0].toPath,
+        error: '',
+        errorType: 'cache',
+      }) as Promise<ErroredFile>
+    }
   }
 
   let oldBuffer: Buffer
@@ -612,6 +639,9 @@ export function logErrors(
             file.error,
           )
           break
+        case 'cache':
+          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
+          break
         case 'warning':
           logArray.push(
             chalk.bgYellow(' WARNING '),
@@ -652,6 +682,9 @@ export function logErrors(
             ' ',
             file.error,
           )
+          break
+        case 'cache':
+          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
           break
         case 'warning':
           logArray.push(
@@ -716,6 +749,8 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
   let hadFilesToProcess = false
   // const mtimeCache = new Map<string, number>()
 
+  let cache: CacheInterface
+
   return {
     name: 'vite-plugin-imagemin',
     enforce: 'post',
@@ -745,6 +780,17 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
       const processDir = onlyAssets ? assetsDir : distDir
       const baseDir = `${root}/`
       const rootRE = new RegExp(`^${escapeRegExp(baseDir)}`)
+
+      // create cache for this run
+      cache = (await createCache({
+        noCache: options.cache === false,
+        mode: 'content',
+        keys: [
+          () => {
+            return JSON.stringify(options)
+          },
+        ],
+      })) as CacheInterface
 
       // Get all input files to (potentially) process
       const files = getAllFiles(processDir, logger)
@@ -852,6 +898,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
               precisions,
               bytesDivider,
               sizeUnit,
+              cache,
             }),
           ),
         ) as Promise<ProcessResult[]>
@@ -965,6 +1012,9 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
             logResults(processedFiles[k], logger, maxLengths)
           })
 
+        // write cache state to file for persistence
+        await cache.reconcile()
+
         Object.keys(erroredFiles)
           .sort((a, b) => a.localeCompare(b)) // TODO: sort by (sub)folder and depth?
           .forEach(k => {
@@ -989,16 +1039,16 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
               totalDuration.length,
             ) + 2
           const totalRatio = (totalSize.to / totalSize.from - 1) * 100
-          const totalRatioString =
-            totalRatio < 0
-              ? chalk.green(
-                  `-${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
-                )
-              : totalRatio > 0
-              ? chalk.red(
-                  `+${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
-                )
-              : `${Math.abs(totalRatio).toFixed(precisions.ratio)} %`
+
+          const totalRatioString = isNaN(totalRatio)
+            ? '0 %'
+            : totalRatio < 0
+            ? chalk.green(
+                `-${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
+              )
+            : totalRatio > 0
+            ? chalk.red(`+${Math.abs(totalRatio).toFixed(precisions.ratio)} %`)
+            : `${Math.abs(totalRatio).toFixed(precisions.ratio)} %`
 
           logger.info('')
 

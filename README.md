@@ -108,6 +108,13 @@ Default: `true`
 
 > Ignore the optimized output if it is larger than the original file.
 
+### cache
+
+Type: `boolean`<br>
+Default: `true`
+
+> Skip optimizing the input if it did not change since the last run.
+
 ### makeAvif / makeWebp
 
 Type: `object`<br>

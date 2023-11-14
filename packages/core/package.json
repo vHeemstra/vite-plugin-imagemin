@@ -61,6 +61,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "@file-cache/core": "^1.1.4",
     "chalk": "^5.2.0",
     "fast-glob": "^3.2.12",
     "fs-extra": "^11.1.1",
