@@ -1,5 +1,6 @@
 import type { Logger as ViteLogger, FilterPattern } from 'vite'
 import type { Plugin as ImageminPlugin } from 'imagemin'
+import { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
 
 // type Required<T> = {
 //   [P in keyof T]-?: T[P]
@@ -80,6 +81,12 @@ export interface ConfigOptions {
   verbose?: boolean
 
   /**
+   * Only optimize contents if it was updated.
+   * @default true
+   */
+  cache?: boolean
+
+  /**
    * Only use optimized contents if smaller than original.
    * @default true
    */
@@ -128,6 +135,7 @@ export interface ResolvedConfigOptions {
   onlyAssets: boolean
   verbose: boolean
   skipIfLarger: boolean
+  cache: boolean
   plugins: ResolvedPluginsConfig
   makeAvif: false | ResolvedMakeConfigOptions
   makeWebp: false | ResolvedMakeConfigOptions
@@ -162,6 +170,7 @@ export type ProcessFileParams = {
   }
   bytesDivider: number
   sizeUnit: string
+  cache: CacheInterface
 }
 
 export type ProcessedFile = {

@@ -1,5 +1,10 @@
 import path from 'node:path'
-import { lstatSync, readdirSync, unlinkSync /*, rmSync */ } from 'node:fs'
+import {
+  existsSync,
+  lstatSync,
+  readdirSync,
+  unlinkSync /*, rmSync */,
+} from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { Buffer } from 'node:buffer'
 import { performance } from 'node:perf_hooks'
@@ -7,6 +12,8 @@ import chalk from 'chalk'
 import { normalizePath, createFilter } from 'vite'
 import imagemin from 'imagemin'
 import isAPNG from 'is-apng'
+import { createCache } from '@file-cache/core'
+
 import {
   isFunction,
   isBoolean,
@@ -34,6 +41,7 @@ import type {
   ProcessResult,
   ProcessFileReturn,
 } from './typings'
+import { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
 
 export const parsePlugins = (rawPlugins: PluginsConfig) => {
   let plugins: false | ResolvedPluginsConfig = false
@@ -84,8 +92,8 @@ export const parseOptions = (
           false === _options.makeAvif.skipIfLargerThan
             ? _options.makeAvif.skipIfLargerThan
             : isString(_options.makeAvif.skipIfLargerThan)
-            ? _options.makeAvif.skipIfLargerThan
-            : 'optimized',
+              ? _options.makeAvif.skipIfLargerThan
+              : 'optimized',
       }
     }
   }
@@ -104,8 +112,8 @@ export const parseOptions = (
           false === _options.makeWebp.skipIfLargerThan
             ? _options.makeWebp.skipIfLargerThan
             : isString(_options.makeWebp.skipIfLargerThan)
-            ? _options.makeWebp.skipIfLargerThan
-            : 'optimized',
+              ? _options.makeWebp.skipIfLargerThan
+              : 'optimized',
       }
     }
   }
@@ -131,6 +139,7 @@ export const parseOptions = (
     skipIfLarger: isBoolean(_options?.skipIfLarger)
       ? _options.skipIfLarger
       : true,
+    cache: isBoolean(_options?.cache) ? _options.cache : true,
     plugins,
     makeAvif,
     makeWebp,
@@ -179,6 +188,7 @@ export async function processFile({
   precisions,
   bytesDivider,
   sizeUnit,
+  cache,
 }: ProcessFileParams): ProcessFileReturn {
   // const start = performance.now()
 
@@ -198,6 +208,24 @@ export async function processFile({
       error: 'Empty to-stack',
       errorType: 'error',
     }) as Promise<ErroredFile>
+  }
+
+  if (cache) {
+    const result = await cache.getAndUpdateCache(baseDir + filePathFrom)
+    if (!result.changed) {
+      const outputsStillExist = fileToStack.every(item => {
+        return existsSync(baseDir + item.toPath)
+      })
+
+      if (outputsStillExist) {
+        return Promise.reject({
+          oldPath: filePathFrom,
+          newPath: '',
+          error: '',
+          errorType: 'cache',
+        }) as Promise<ErroredFile>
+      }
+    }
   }
 
   let oldBuffer: Buffer
@@ -526,8 +554,8 @@ export function logResults(
         file.ratio < 0
           ? chalk.green(basenameTo)
           : file.ratio > 0
-          ? chalk.yellow(basenameTo)
-          : basenameTo,
+            ? chalk.yellow(basenameTo)
+            : basenameTo,
         ' '.repeat(
           maxPathLength - bulletLength - file.newPath.length + spaceLength,
         ),
@@ -542,8 +570,8 @@ export function logResults(
         file.ratio < 0
           ? chalk.green(file.ratioString)
           : file.ratio > 0
-          ? chalk.red(file.ratioString)
-          : file.ratioString,
+            ? chalk.red(file.ratioString)
+            : file.ratioString,
         chalk.dim(' │ '),
 
         // Duration
@@ -612,6 +640,9 @@ export function logErrors(
             file.error,
           )
           break
+        case 'cache':
+          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
+          break
         case 'warning':
           logArray.push(
             chalk.bgYellow(' WARNING '),
@@ -652,6 +683,9 @@ export function logErrors(
             ' ',
             file.error,
           )
+          break
+        case 'cache':
+          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
           break
         case 'warning':
           logArray.push(
@@ -716,6 +750,8 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
   let hadFilesToProcess = false
   // const mtimeCache = new Map<string, number>()
 
+  let cache: CacheInterface
+
   return {
     name: 'vite-plugin-imagemin',
     enforce: 'post',
@@ -745,6 +781,17 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
       const processDir = onlyAssets ? assetsDir : distDir
       const baseDir = `${root}/`
       const rootRE = new RegExp(`^${escapeRegExp(baseDir)}`)
+
+      // Create cache for this run
+      cache = (await createCache({
+        noCache: options.cache === false,
+        mode: 'content',
+        keys: [
+          () => {
+            return JSON.stringify(options)
+          },
+        ],
+      })) as CacheInterface
 
       // Get all input files to (potentially) process
       const files = getAllFiles(processDir, logger)
@@ -852,6 +899,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
               precisions,
               bytesDivider,
               sizeUnit,
+              cache,
             }),
           ),
         ) as Promise<ProcessResult[]>
@@ -965,6 +1013,9 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
             logResults(processedFiles[k], logger, maxLengths)
           })
 
+        // Write cache state to file for persistence
+        await cache.reconcile()
+
         Object.keys(erroredFiles)
           .sort((a, b) => a.localeCompare(b)) // TODO: sort by (sub)folder and depth?
           .forEach(k => {
@@ -989,16 +1040,18 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
               totalDuration.length,
             ) + 2
           const totalRatio = (totalSize.to / totalSize.from - 1) * 100
-          const totalRatioString =
-            totalRatio < 0
+
+          const totalRatioString = isNaN(totalRatio)
+            ? '0 %'
+            : totalRatio < 0
               ? chalk.green(
                   `-${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
                 )
               : totalRatio > 0
-              ? chalk.red(
-                  `+${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
-                )
-              : `${Math.abs(totalRatio).toFixed(precisions.ratio)} %`
+                ? chalk.red(
+                    `+${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
+                  )
+                : `${Math.abs(totalRatio).toFixed(precisions.ratio)} %`
 
           logger.info('')
 

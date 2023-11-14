@@ -1368,6 +1368,7 @@ describe('logErrors', () => {
  *    dist/images/opaque-1.png.avif
  */
 
+// TODO: add tests using cache
 // TODO: expand after-build checks
 
 describe.skipIf(skipBuilds)('viteImagemin', () => {
@@ -1452,6 +1453,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
           // skipIfLargerThan: 'optimized',
           // skipIfLargerThan: 'smallest',
         },
+        cache: false,
       }
 
       const testConfig = getBuildConfig(viteImagemin(options), {
@@ -1518,6 +1520,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
           skipIfLargerThan: 'smallest' as const,
         },
         logger: mockLogger,
+        cache: false,
       }
 
       const testConfig = getBuildConfig(viteImagemin(options), {
@@ -1574,6 +1577,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
           ],
         },
         logger: mockLogger,
+        cache: false,
       }
 
       const testConfig = getBuildConfig(viteImagemin(options), {
@@ -1619,6 +1623,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
         plugins: {
           gif: [mockPlugin],
         },
+        cache: false,
       }
 
       const testConfig = getBuildConfig(viteImagemin(options), {
@@ -1649,6 +1654,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
         plugins: {
           gif: [mockPlugin],
         },
+        cache: false,
       }
 
       const testConfig = getBuildConfig(viteImagemin(options), {
@@ -1684,6 +1690,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
             }),
           ],
         },
+        cache: false,
       }
 
       const testConfig = getBuildConfig(viteImagemin(options), {
@@ -1714,6 +1721,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
         plugins: {
           none: [mockPlugin],
         },
+        cache: false,
       }
 
       const testConfig = getBuildConfig(viteImagemin(options), {
