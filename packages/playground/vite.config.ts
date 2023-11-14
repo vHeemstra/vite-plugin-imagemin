@@ -51,6 +51,7 @@ export default defineConfig({
         // skipIfLargerThan: 'optimized', // default
         // skipIfLargerThan: 'smallest',
       },
+      // cache: false,
     }),
   ],
 })

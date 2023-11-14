@@ -92,8 +92,8 @@ export const parseOptions = (
           false === _options.makeAvif.skipIfLargerThan
             ? _options.makeAvif.skipIfLargerThan
             : isString(_options.makeAvif.skipIfLargerThan)
-            ? _options.makeAvif.skipIfLargerThan
-            : 'optimized',
+              ? _options.makeAvif.skipIfLargerThan
+              : 'optimized',
       }
     }
   }
@@ -112,8 +112,8 @@ export const parseOptions = (
           false === _options.makeWebp.skipIfLargerThan
             ? _options.makeWebp.skipIfLargerThan
             : isString(_options.makeWebp.skipIfLargerThan)
-            ? _options.makeWebp.skipIfLargerThan
-            : 'optimized',
+              ? _options.makeWebp.skipIfLargerThan
+              : 'optimized',
       }
     }
   }
@@ -210,20 +210,21 @@ export async function processFile({
     }) as Promise<ErroredFile>
   }
 
-  const result = await cache.getAndUpdateCache(baseDir + filePathFrom)
-  if (!result.changed) {
-    // just to be sure the outputs (still) exists
-    const outputExists = fileToStack.every(item => {
-      return existsSync(baseDir + item.toPath)
-    })
+  if (cache) {
+    const result = await cache.getAndUpdateCache(baseDir + filePathFrom)
+    if (!result.changed) {
+      const outputsStillExist = fileToStack.every(item => {
+        return existsSync(baseDir + item.toPath)
+      })
 
-    if (outputExists) {
-      return Promise.reject({
-        oldPath: filePathFrom,
-        newPath: fileToStack[0].toPath,
-        error: '',
-        errorType: 'cache',
-      }) as Promise<ErroredFile>
+      if (outputsStillExist) {
+        return Promise.reject({
+          oldPath: filePathFrom,
+          newPath: '',
+          error: '',
+          errorType: 'cache',
+        }) as Promise<ErroredFile>
+      }
     }
   }
 
@@ -553,8 +554,8 @@ export function logResults(
         file.ratio < 0
           ? chalk.green(basenameTo)
           : file.ratio > 0
-          ? chalk.yellow(basenameTo)
-          : basenameTo,
+            ? chalk.yellow(basenameTo)
+            : basenameTo,
         ' '.repeat(
           maxPathLength - bulletLength - file.newPath.length + spaceLength,
         ),
@@ -569,8 +570,8 @@ export function logResults(
         file.ratio < 0
           ? chalk.green(file.ratioString)
           : file.ratio > 0
-          ? chalk.red(file.ratioString)
-          : file.ratioString,
+            ? chalk.red(file.ratioString)
+            : file.ratioString,
         chalk.dim(' │ '),
 
         // Duration
@@ -781,7 +782,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
       const baseDir = `${root}/`
       const rootRE = new RegExp(`^${escapeRegExp(baseDir)}`)
 
-      // create cache for this run
+      // Create cache for this run
       cache = (await createCache({
         noCache: options.cache === false,
         mode: 'content',
@@ -1012,7 +1013,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
             logResults(processedFiles[k], logger, maxLengths)
           })
 
-        // write cache state to file for persistence
+        // Write cache state to file for persistence
         await cache.reconcile()
 
         Object.keys(erroredFiles)
@@ -1043,12 +1044,14 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
           const totalRatioString = isNaN(totalRatio)
             ? '0 %'
             : totalRatio < 0
-            ? chalk.green(
-                `-${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
-              )
-            : totalRatio > 0
-            ? chalk.red(`+${Math.abs(totalRatio).toFixed(precisions.ratio)} %`)
-            : `${Math.abs(totalRatio).toFixed(precisions.ratio)} %`
+              ? chalk.green(
+                  `-${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
+                )
+              : totalRatio > 0
+                ? chalk.red(
+                    `+${Math.abs(totalRatio).toFixed(precisions.ratio)} %`,
+                  )
+                : `${Math.abs(totalRatio).toFixed(precisions.ratio)} %`
 
           logger.info('')
 
