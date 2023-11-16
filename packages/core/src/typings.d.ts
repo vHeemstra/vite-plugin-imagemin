@@ -170,7 +170,8 @@ export type ProcessFileParams = {
   }
   bytesDivider: number
   sizeUnit: string
-  cache: CacheInterface
+  cacheDir?: string
+  cache?: CacheInterface | null
 }
 
 export type ProcessedFile = {

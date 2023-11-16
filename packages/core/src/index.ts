@@ -1,9 +1,11 @@
 import path from 'node:path'
 import {
   existsSync,
+  mkdirSync,
   lstatSync,
   readdirSync,
   unlinkSync /*, rmSync */,
+  copyFileSync,
 } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { Buffer } from 'node:buffer'
@@ -42,6 +44,15 @@ import type {
   ProcessFileReturn,
 } from './typings'
 import { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
+
+// export const pathIsWithin = (parentPath: string, childPath: string) => {
+//   try {
+//     const relative = path.relative(parentPath, childPath)
+//     return relative && !relative.startsWith('..') && !path.isAbsolute(relative)
+//   } catch (e) {
+//     return false
+//   }
+// }
 
 export const parsePlugins = (rawPlugins: PluginsConfig) => {
   let plugins: false | ResolvedPluginsConfig = false
@@ -188,7 +199,8 @@ export async function processFile({
   precisions,
   bytesDivider,
   sizeUnit,
-  cache,
+  cacheDir = '',
+  cache = null,
 }: ProcessFileParams): ProcessFileReturn {
   // const start = performance.now()
 
@@ -211,13 +223,24 @@ export async function processFile({
   }
 
   if (cache) {
-    const result = await cache.getAndUpdateCache(baseDir + filePathFrom)
-    if (!result.changed) {
-      const outputsStillExist = fileToStack.every(item => {
-        return existsSync(baseDir + item.toPath)
+    // Check if input file hasn't changed
+    const inputFileCache = await cache.getAndUpdateCache(baseDir + filePathFrom)
+    if (!inputFileCache.changed) {
+      // Check if output files are in cache and use them if they haven't changed
+      const outputFilesExist = fileToStack.every(async item => {
+        if (existsSync(cacheDir + item.toPath)) {
+          const outputFileCache = await cache.getAndUpdateCache(
+            cacheDir + item.toPath,
+          )
+          if (!outputFileCache.changed) {
+            copyFileSync(cacheDir + item.toPath, baseDir + item.toPath)
+            return existsSync(baseDir + item.toPath)
+          }
+        }
+        return false
       })
 
-      if (outputsStillExist) {
+      if (outputFilesExist) {
         return Promise.reject({
           oldPath: filePathFrom,
           newPath: '',
@@ -324,7 +347,13 @@ export async function processFile({
               }
               return Promise.reject(e)
             })
-            .then(() => {
+            .then(async () => {
+              // Add to/update in cache
+              if (cache) {
+                copyFileSync(baseDir + filePathTo, cacheDir + filePathTo)
+                await cache.getAndUpdateCache(cacheDir + filePathTo)
+              }
+
               const duration = performance.now() - start
               const ratio = newSize / oldSize - 1
               return Promise.resolve({
@@ -714,11 +743,11 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
   }
 
   let config: ResolvedConfig
-  let root: string
+  let rootDir: string
   // let sourceDir: string
-  let distDir: string
+  let outDir: string
   let assetsDir: string
-  // let publicDir = ''
+  // let publicDir: string
   // const entry = options.entry
   const onlyAssets = options.onlyAssets
   const verbose = options.verbose
@@ -751,6 +780,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
   // const mtimeCache = new Map<string, number>()
 
   let cache: CacheInterface
+  let cacheDir = ''
 
   return {
     name: 'vite-plugin-imagemin',
@@ -758,16 +788,24 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
     apply: 'build',
     configResolved: resolvedConfig => {
       config = resolvedConfig
-      root = options.root || config.root
 
-      // sourceDir = normalizePath(path.resolve(root, entry))
-      distDir = normalizePath(path.resolve(root, config.build.outDir))
-      assetsDir = normalizePath(path.resolve(distDir, config.build.assetsDir))
+      rootDir = options.root || config.root
+      rootDir = normalizePath(
+        path.isAbsolute(rootDir)
+          ? rootDir
+          : path.resolve(process.cwd(), rootDir),
+      )
 
-      // if (typeof config.publicDir === 'string') {
-      //   publicDir = config.publicDir
-      // }
-      // publicDir = normalizePath(publicDir)
+      cacheDir =
+        normalizePath(
+          path.resolve(rootDir, './node_modules/.vite-plugin-imagemin/'),
+        ) + '/'
+      // sourceDir = normalizePath(path.resolve(rootDir, entry))
+      outDir = normalizePath(path.resolve(rootDir, config.build.outDir))
+      assetsDir = normalizePath(path.resolve(outDir, config.build.assetsDir))
+      // publicDir = normalizePath(path.resolve(rootDir, config.publicDir))
+
+      // const emptyOutDir = config.build.emptyOutDir || pathIsWithin(rootDir, outDir)
 
       if (verbose) {
         logger = options.logger || config.logger
@@ -778,20 +816,24 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
 
       logger.info('')
 
-      const processDir = onlyAssets ? assetsDir : distDir
-      const baseDir = `${root}/`
+      const processDir = onlyAssets ? assetsDir : outDir
+      const baseDir = `${rootDir}/`
       const rootRE = new RegExp(`^${escapeRegExp(baseDir)}`)
 
-      // Create cache for this run
-      cache = (await createCache({
-        noCache: options.cache === false,
-        mode: 'content',
-        keys: [
-          () => {
-            return JSON.stringify(options)
-          },
-        ],
-      })) as CacheInterface
+      // Create cache
+      if (options.cache !== false) {
+        mkdirSync(cacheDir.slice(0, -1), { recursive: true })
+
+        cache = (await createCache({
+          // noCache: options.cache === false,
+          mode: 'content',
+          keys: [
+            () => {
+              return JSON.stringify(options)
+            },
+          ],
+        })) as CacheInterface
+      }
 
       // Get all input files to (potentially) process
       const files = getAllFiles(processDir, logger)
@@ -881,6 +923,9 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
 
       // Ensure all destination (sub)directories are present
       smartEnsureDirs(toPaths.map(file => baseDir + file))
+      if (options.cache !== false) {
+        smartEnsureDirs(toPaths.map(file => cacheDir + file))
+      }
 
       // Process stack
       const {
@@ -899,6 +944,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
               precisions,
               bytesDivider,
               sizeUnit,
+              cacheDir,
               cache,
             }),
           ),
@@ -1014,7 +1060,9 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
           })
 
         // Write cache state to file for persistence
-        await cache.reconcile()
+        if (options.cache !== false) {
+          await cache.reconcile()
+        }
 
         Object.keys(erroredFiles)
           .sort((a, b) => a.localeCompare(b)) // TODO: sort by (sub)folder and depth?

@@ -564,8 +564,8 @@ describe('getAllFiles', () => {
     const files = getAllFiles(join(root, 'public'), mockLogger)
     expect(spy).not.toHaveBeenCalled()
     expect(files).toHaveLength(23)
-    expect(files).toContain(join(root, 'public', 'vite.svg'))
-    // expect(files).toEqual(['vite.svg'])
+    expect(files).toContain(join(root, 'public', 'from_public.svg'))
+    // expect(files).toEqual(['from_public.svg'])
   })
 
   it('logs ENOENT error on non-existing path', () => {
@@ -735,7 +735,7 @@ describe('processFile', () => {
       ['smallest' as const, [true, true, false]] as const,
     ].forEach(([skipMode, expected]) => {
       const stack: ProcessFileParams = {
-        filePathFrom: 'public/vite.svg',
+        filePathFrom: 'public/from_public.svg',
         fileToStack: [],
         baseDir: normalizePath(root) + '/',
         bytesDivider: 1000 as const,
@@ -754,7 +754,7 @@ describe('processFile', () => {
           // smaller
           () => Promise.resolve(Buffer.from('less')),
           {
-            oldPath: 'public/vite.svg',
+            oldPath: 'public/from_public.svg',
             oldSize: 1497,
             newSize: 4,
             oldSizeString: '1.50 kB',
@@ -766,7 +766,7 @@ describe('processFile', () => {
           // equal
           mockPlugin,
           {
-            oldPath: 'public/vite.svg',
+            oldPath: 'public/from_public.svg',
             oldSize: 1497,
             newSize: 1497,
             oldSizeString: '1.50 kB',
@@ -779,7 +779,7 @@ describe('processFile', () => {
           (b: Buffer) =>
             Promise.resolve(Buffer.concat([b, Buffer.from('more')])),
           {
-            oldPath: 'public/vite.svg',
+            oldPath: 'public/from_public.svg',
             oldSize: 1497,
             newSize: 1501,
             oldSizeString: '1.50 kB',
@@ -1368,7 +1368,7 @@ describe('logErrors', () => {
  *    dist/images/opaque-1.png.avif
  */
 
-// TODO: add tests using cache
+// TODO: add tests for usage with cache
 // TODO: expand after-build checks
 
 describe.skipIf(skipBuilds)('viteImagemin', () => {
