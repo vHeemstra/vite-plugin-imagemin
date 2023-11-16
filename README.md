@@ -20,6 +20,7 @@
 - Can create Avif versions of supported images (jpg/png).
 - Skips optimized version if output is larger than original.
 - Skips Avif/WebP version if output is larger than original, optimized version or smallest version of an image.
+- Uses cache to skip processing of unchanged files
 
 ## Install
 
