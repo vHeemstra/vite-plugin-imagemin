@@ -27,6 +27,7 @@ import {
 } from './utils'
 
 import type { PluginOption, ResolvedConfig } from 'vite'
+import type { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
 import type {
   ConfigOptions,
   ResolvedConfigOptions,
@@ -43,7 +44,6 @@ import type {
   ProcessResult,
   ProcessFileReturn,
 } from './typings'
-import { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
 
 // export const pathIsWithin = (parentPath: string, childPath: string) => {
 //   try {
@@ -225,22 +225,34 @@ export async function processFile({
   if (cache) {
     // Check if input file hasn't changed
     const inputFileCache = await cache.getAndUpdateCache(baseDir + filePathFrom)
-    if (!inputFileCache.changed) {
-      // Check if output files are in cache and use them if they haven't changed
-      const outputFilesExist = fileToStack.every(async item => {
-        if (existsSync(cacheDir + item.toPath)) {
-          const outputFileCache = await cache.getAndUpdateCache(
-            cacheDir + item.toPath,
-          )
-          if (!outputFileCache.changed) {
-            copyFileSync(cacheDir + item.toPath, baseDir + item.toPath)
-            return existsSync(baseDir + item.toPath)
-          }
-        }
-        return false
-      })
 
-      if (outputFilesExist) {
+    if (!inputFileCache.error && !inputFileCache.changed) {
+      // Check if output files are in cache and use them if they haven't changed
+      const outputFilesExist = await Promise.allSettled(
+        fileToStack.map(
+          item =>
+            new Promise((resolve, reject) =>
+              cache
+                .getAndUpdateCache(cacheDir + item.toPath)
+                .then(outputFileCache => {
+                  if (!outputFileCache.error && !outputFileCache.changed) {
+                    copyFileSync(cacheDir + item.toPath, baseDir + item.toPath)
+                    if (existsSync(baseDir + item.toPath)) {
+                      resolve(true)
+                    }
+                  }
+                  reject(
+                    outputFileCache.error
+                      ? `Error while checking cache [${outputFileCache.error.message}]`
+                      : 'Could not copy cached files',
+                  )
+                })
+                .catch(reject),
+            ),
+        ),
+      )
+
+      if (outputFilesExist.every(p => p.status === 'fulfilled')) {
         return Promise.reject({
           oldPath: filePathFrom,
           newPath: '',
@@ -796,14 +808,11 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
           : path.resolve(process.cwd(), rootDir),
       )
 
-      cacheDir =
-        normalizePath(
-          path.resolve(rootDir, './node_modules/.vite-plugin-imagemin/'),
-        ) + '/'
       // sourceDir = normalizePath(path.resolve(rootDir, entry))
       outDir = normalizePath(path.resolve(rootDir, config.build.outDir))
       assetsDir = normalizePath(path.resolve(outDir, config.build.assetsDir))
       // publicDir = normalizePath(path.resolve(rootDir, config.publicDir))
+      cacheDir = `${rootDir}/node_modules/.cache/vite-plugin-imagemin/`
 
       // const emptyOutDir = config.build.emptyOutDir || pathIsWithin(rootDir, outDir)
 
@@ -816,14 +825,8 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
 
       logger.info('')
 
-      const processDir = onlyAssets ? assetsDir : outDir
-      const baseDir = `${rootDir}/`
-      const rootRE = new RegExp(`^${escapeRegExp(baseDir)}`)
-
       // Create cache
       if (options.cache !== false) {
-        mkdirSync(cacheDir.slice(0, -1), { recursive: true })
-
         cache = (await createCache({
           // noCache: options.cache === false,
           mode: 'content',
@@ -833,7 +836,13 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
             },
           ],
         })) as CacheInterface
+
+        mkdirSync(cacheDir.slice(0, -1), { recursive: true })
       }
+
+      const processDir = onlyAssets ? assetsDir : outDir
+      const baseDir = `${rootDir}/`
+      const rootRE = new RegExp(`^${escapeRegExp(baseDir)}`)
 
       // Get all input files to (potentially) process
       const files = getAllFiles(processDir, logger)
