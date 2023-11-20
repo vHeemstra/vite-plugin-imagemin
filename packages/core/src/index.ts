@@ -15,6 +15,7 @@ import { normalizePath, createFilter } from 'vite'
 import imagemin from 'imagemin'
 import isAPNG from 'is-apng'
 import { createCache } from '@file-cache/core'
+import { packageDirectory } from 'pkg-dir'
 
 import {
   isFunction,
@@ -174,9 +175,7 @@ export function getAllFiles(dir: string, logger: Logger): string[] {
     const stats = lstatSync(dir)
     if (stats.isDirectory()) {
       readdirSync(dir).forEach(file => {
-        files = files.concat(
-          getAllFiles(path.join(dir, path.sep, file), logger),
-        )
+        files = files.concat(getAllFiles(path.join(dir, file), logger))
       })
     } else {
       // [DISABLED] Cache lookup
@@ -224,7 +223,9 @@ export async function processFile({
 
   if (cache) {
     // Check if input file hasn't changed
-    const inputFileCache = await cache.getAndUpdateCache(baseDir + filePathFrom)
+    const inputFileCache = await cache.getAndUpdateCache(
+      path.join(baseDir, filePathFrom),
+    )
 
     if (!inputFileCache.error && !inputFileCache.changed) {
       // Check if output files are in cache and use them if they haven't changed
@@ -233,11 +234,14 @@ export async function processFile({
           item =>
             new Promise((resolve, reject) =>
               cache
-                .getAndUpdateCache(cacheDir + item.toPath)
+                .getAndUpdateCache(path.join(cacheDir, item.toPath))
                 .then(outputFileCache => {
                   if (!outputFileCache.error && !outputFileCache.changed) {
-                    copyFileSync(cacheDir + item.toPath, baseDir + item.toPath)
-                    if (existsSync(baseDir + item.toPath)) {
+                    copyFileSync(
+                      path.join(cacheDir, item.toPath),
+                      path.join(baseDir, item.toPath),
+                    )
+                    if (existsSync(path.join(baseDir, item.toPath))) {
                       resolve(true)
                     }
                   }
@@ -266,7 +270,7 @@ export async function processFile({
   let oldBuffer: Buffer
   let oldSize = 0
 
-  return readFile(baseDir + filePathFrom)
+  return readFile(path.join(baseDir, filePathFrom))
     .then(buffer => {
       const start = performance.now()
 
@@ -347,7 +351,7 @@ export async function processFile({
 
               // const newDirectory = path.dirname(baseDir + filePathTo)
               // await ensureDir(newDirectory, 0o755)
-              return writeFile(baseDir + filePathTo, newBuffer)
+              return writeFile(path.join(baseDir, filePathTo), newBuffer)
             })
             .catch(e => {
               if (e?.message) {
@@ -362,8 +366,11 @@ export async function processFile({
             .then(async () => {
               // Add to/update in cache
               if (cache) {
-                copyFileSync(baseDir + filePathTo, cacheDir + filePathTo)
-                await cache.getAndUpdateCache(cacheDir + filePathTo)
+                copyFileSync(
+                  path.join(baseDir, filePathTo),
+                  path.join(cacheDir, filePathTo),
+                )
+                await cache.getAndUpdateCache(path.join(cacheDir, filePathTo))
               }
 
               const duration = performance.now() - start
@@ -798,7 +805,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
     name: 'vite-plugin-imagemin',
     enforce: 'post',
     apply: 'build',
-    configResolved: resolvedConfig => {
+    configResolved: async resolvedConfig => {
       config = resolvedConfig
 
       rootDir = options.root || config.root
@@ -808,13 +815,12 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
           : path.resolve(process.cwd(), rootDir),
       )
 
-      // sourceDir = normalizePath(path.resolve(rootDir, entry))
       outDir = normalizePath(path.resolve(rootDir, config.build.outDir))
       assetsDir = normalizePath(path.resolve(outDir, config.build.assetsDir))
-      // publicDir = normalizePath(path.resolve(rootDir, config.publicDir))
-      cacheDir = `${rootDir}/node_modules/.cache/vite-plugin-imagemin/`
 
-      // const emptyOutDir = config.build.emptyOutDir || pathIsWithin(rootDir, outDir)
+      // cache dir resides withing root of project
+      const pkgDir = await packageDirectory()
+      cacheDir = path.join(pkgDir, 'node_modules/.cache/vite-plugin-imagemin')
 
       if (verbose) {
         logger = options.logger || config.logger
@@ -837,7 +843,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
           ],
         })) as CacheInterface
 
-        mkdirSync(cacheDir.slice(0, -1), { recursive: true })
+        mkdirSync(cacheDir, { recursive: true })
       }
 
       const processDir = onlyAssets ? assetsDir : outDir
@@ -931,9 +937,9 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
       })
 
       // Ensure all destination (sub)directories are present
-      smartEnsureDirs(toPaths.map(file => baseDir + file))
+      smartEnsureDirs(toPaths.map(file => path.join(baseDir, file)))
       if (options.cache !== false) {
-        smartEnsureDirs(toPaths.map(file => cacheDir + file))
+        smartEnsureDirs(toPaths.map(file => path.join(cacheDir, file)))
       }
 
       // Process stack
@@ -1016,7 +1022,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
                 )
               }
               if (shouldRemove) {
-                unlinkSync(baseDir + webpVersion.newPath)
+                unlinkSync(path.join(baseDir, webpVersion.newPath))
                 // rmSync(baseDir + webpVersion.newPath, { force: true })
                 processedFiles[k][webpVersionIdx].webpDeleted =
                   options.makeWebp.skipIfLargerThan
@@ -1050,7 +1056,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
                 )
               }
               if (shouldRemove) {
-                unlinkSync(baseDir + avifVersion.newPath)
+                unlinkSync(path.join(baseDir, avifVersion.newPath))
                 // rmSync(baseDir + avifVersion.newPath, { force: true })
                 processedFiles[k][avifVersionIdx].avifDeleted =
                   options.makeAvif.skipIfLargerThan
