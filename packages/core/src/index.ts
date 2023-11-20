@@ -4,8 +4,9 @@ import {
   mkdirSync,
   lstatSync,
   readdirSync,
-  unlinkSync /*, rmSync */,
+  unlinkSync,
   copyFileSync,
+  rmSync,
 } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { Buffer } from 'node:buffer'
@@ -24,6 +25,8 @@ import {
   isFilterPattern,
   escapeRegExp,
   smartEnsureDirs,
+  getPackageDirectory,
+  getPackageName,
 } from './utils'
 
 import type { PluginOption, ResolvedConfig } from 'vite'
@@ -151,6 +154,8 @@ export const parseOptions = (
       ? _options.skipIfLarger
       : true,
     cache: isBoolean(_options?.cache) ? _options.cache : true,
+    cacheDir: isString(_options?.cacheDir) ? _options.cacheDir : undefined,
+    clearCache: isBoolean(_options?.clearCache) ? _options.clearCache : false,
     plugins,
     makeAvif,
     makeWebp,
@@ -808,11 +813,25 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
           : path.resolve(process.cwd(), rootDir),
       )
 
+      // Note: Only cacheDir has a trailing slash.
+      if (isString(options.cacheDir)) {
+        cacheDir =
+          normalizePath(
+            path.isAbsolute(options.cacheDir)
+              ? options.cacheDir
+              : path.resolve(rootDir, options.cacheDir),
+          ) + '/'
+      } else {
+        const packageDir = normalizePath(getPackageDirectory())
+        cacheDir = `${packageDir}/node_modules/.cache/vite-plugin-imagemin/${getPackageName(
+          packageDir,
+        )}/`
+      }
+
       // sourceDir = normalizePath(path.resolve(rootDir, entry))
       outDir = normalizePath(path.resolve(rootDir, config.build.outDir))
       assetsDir = normalizePath(path.resolve(outDir, config.build.assetsDir))
       // publicDir = normalizePath(path.resolve(rootDir, config.publicDir))
-      cacheDir = `${rootDir}/node_modules/.cache/vite-plugin-imagemin/`
 
       // const emptyOutDir = config.build.emptyOutDir || pathIsWithin(rootDir, outDir)
 
@@ -825,10 +844,15 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
 
       logger.info('')
 
-      // Create cache
+      // Init cache
+      if (options.clearCache) {
+        rmSync(cacheDir.slice(0, -1), { recursive: true, force: true })
+      }
       if (options.cache !== false) {
+        mkdirSync(cacheDir.slice(0, -1), { recursive: true })
+
         cache = (await createCache({
-          // noCache: options.cache === false,
+          cacheDirectory: cacheDir.slice(0, -1),
           mode: 'content',
           keys: [
             () => {
@@ -836,8 +860,6 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
             },
           ],
         })) as CacheInterface
-
-        mkdirSync(cacheDir.slice(0, -1), { recursive: true })
       }
 
       const processDir = onlyAssets ? assetsDir : outDir

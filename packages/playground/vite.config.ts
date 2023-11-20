@@ -52,6 +52,8 @@ export default defineConfig({
         // skipIfLargerThan: 'smallest',
       },
       // cache: false,
+      // clearCache: true,
+      // cacheDir: 'cache',
     }),
   ],
 })

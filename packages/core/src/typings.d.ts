@@ -87,6 +87,21 @@ export interface ConfigOptions {
   cache?: boolean
 
   /**
+   * Path of the directory to use for caching.
+   * Either:
+   *   - relative path to Vite's root
+   *   - absolute path
+   * @default <packageRoot>/node_modules/.cache/vite-plugin-imagemin
+   */
+  cacheDir?: string
+
+  /**
+   * Force-clear the cache.
+   * @default false
+   */
+  clearCache?: boolean
+
+  /**
    * Only use optimized contents if smaller than original.
    * @default true
    */
@@ -136,6 +151,8 @@ export interface ResolvedConfigOptions {
   verbose: boolean
   skipIfLarger: boolean
   cache: boolean
+  cacheDir?: string
+  clearCache: boolean
   plugins: ResolvedPluginsConfig
   makeAvif: false | ResolvedMakeConfigOptions
   makeWebp: false | ResolvedMakeConfigOptions
