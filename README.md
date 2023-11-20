@@ -20,7 +20,7 @@
 - Can create Avif versions of supported images (jpg/png).
 - Skips optimized version if output is larger than original.
 - Skips Avif/WebP version if output is larger than original, optimized version or smallest version of an image.
-- Uses cache to skip processing of unchanged files
+- Uses optional cache by default to skip processing of unchanged files
 
 ## Install
 
@@ -115,6 +115,23 @@ Type: `boolean`<br>
 Default: `true`
 
 > Skip optimizing the input if it did not change since the last run.
+
+### cacheDir
+
+Type: `string`<br>
+Default: `<packageRoot>/node_modules/.cache/vite-plugin-imagemin/<packageName>/`
+
+> Choose the directory to use for caching.
+> - Relative paths will be relative to the Vite project's **root** directory.
+> - Absolute paths will be use as-is.
+> - Absent/non-string value will use the default location.
+
+### clearCache
+
+Type: `boolean`<br>
+Default: `false`
+
+> Clears the cache folder before processing.
 
 ### makeAvif / makeWebp
 
