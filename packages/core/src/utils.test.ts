@@ -213,3 +213,5 @@ describe('smartEnsureDirs', () => {
     })
   })
 })
+
+// TODO: add tests for getPackageDirectory and getPackageName

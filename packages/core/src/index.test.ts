@@ -1368,7 +1368,7 @@ describe('logErrors', () => {
  *    dist/images/opaque-1.png.avif
  */
 
-// TODO: add tests for usage with cache
+// TODO: add tests for cache usage and its options
 // TODO: expand after-build checks
 
 describe.skipIf(skipBuilds)('viteImagemin', () => {
