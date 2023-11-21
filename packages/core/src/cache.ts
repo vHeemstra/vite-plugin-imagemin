@@ -1,9 +1,8 @@
-import { copyFileSync, existsSync, rmSync } from 'node:fs'
-import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises'
-
+import crypto, { BinaryLike } from 'crypto'
+import { copyFileSync, existsSync } from 'node:fs'
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { normalizePath } from 'vite'
-import crypto, { BinaryLike } from 'crypto'
 
 import {
   getPackageDirectory,
@@ -14,14 +13,9 @@ import {
 
 import type { ResolvedConfigOptions, StackItem } from './typings'
 
-type CacheContent = {
+type CacheValue = {
   hash: string
 }
-type CacheMetaData = {
-  size: number
-  mtime: number
-}
-type CacheValue = CacheContent | CacheMetaData
 
 let cacheEnabled = false
 let cacheDir = ''
@@ -70,7 +64,7 @@ async function getAndUpdateCacheContent(filePath: string | URL) {
     const hash = md5(await readFile(filePath))
     const normalizedFilePath = filePath.toString()
     const cacheValue = fileCacheMap.get(normalizedFilePath) as
-      | CacheContent
+      | CacheValue
       | undefined
     if (cacheValue && cacheValue.hash === hash) {
       return {
@@ -95,8 +89,9 @@ export const FileCache = {
 
     await initCacheDir(rootDir, options.cacheDir)
 
-    if (options.clearCache) {
-      FileCache.clear()
+    // clear cache?
+    if (options.clearCache && cacheDir) {
+      await rm(cacheDir.slice(0, -1), { recursive: true, force: true })
     }
 
     await initCacheMaps()
@@ -175,12 +170,6 @@ export const FileCache = {
     } catch (error) {
       //   console.error('Cache reconcile has failed', error)
       return false
-    }
-  },
-
-  clear: () => {
-    if (cacheFile && cacheDir) {
-      rmSync(cacheDir.slice(0, -1), { recursive: true, force: true })
     }
   },
 }
