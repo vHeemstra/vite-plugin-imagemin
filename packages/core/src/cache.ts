@@ -1,7 +1,9 @@
-import { createCache } from '@file-cache/core'
-import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, rmSync } from 'node:fs'
+import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises'
+
 import path from 'node:path'
 import { normalizePath } from 'vite'
+import crypto, { BinaryLike } from 'crypto'
 
 import {
   getPackageDirectory,
@@ -10,14 +12,24 @@ import {
   smartEnsureDirs,
 } from './utils'
 
-import type { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
 import type { ResolvedConfigOptions, StackItem } from './typings'
 
-let cacheEnabled = false
-let cache: CacheInterface
-let cacheDir = ''
+type CacheContent = {
+  hash: string
+}
+type CacheMetaData = {
+  size: number
+  mtime: number
+}
+type CacheValue = CacheContent | CacheMetaData
 
-function initCacheDir(rootDir: string, _cacheDir?: string): void {
+let cacheEnabled = false
+let cacheDir = ''
+let cacheFile = ''
+let fileCacheMap = new Map<string, CacheValue>()
+let entryMap = new Map<string, CacheValue>()
+
+async function initCacheDir(rootDir: string, _cacheDir?: string) {
   // Note: Only cacheDir has a trailing slash.
   if (isString(_cacheDir)) {
     cacheDir =
@@ -33,29 +45,61 @@ function initCacheDir(rootDir: string, _cacheDir?: string): void {
     )}/`
   }
 
-  mkdirSync(cacheDir.slice(0, -1), { recursive: true })
+  await mkdir(cacheDir.slice(0, -1), { recursive: true })
+}
+
+async function initCacheMaps() {
+  cacheFile = path.join(cacheDir, 'contents')
+
+  try {
+    const json = JSON.parse(await readFile(cacheFile, 'utf-8'))
+    entryMap = new Map<string, CacheValue>(Object.entries(json))
+  } catch {
+    entryMap = new Map<string, CacheValue>()
+  }
+
+  fileCacheMap = new Map<string, CacheValue>(entryMap)
+}
+
+function md5(buffer: BinaryLike): string {
+  return crypto.createHash('md5').update(buffer).digest('hex')
+}
+
+async function getAndUpdateCacheContent(filePath: string | URL) {
+  try {
+    const hash = md5(await readFile(filePath))
+    const normalizedFilePath = filePath.toString()
+    const cacheValue = fileCacheMap.get(normalizedFilePath) as
+      | CacheContent
+      | undefined
+    if (cacheValue && cacheValue.hash === hash) {
+      return {
+        changed: false,
+      }
+    }
+    entryMap.set(normalizedFilePath, { hash })
+    return {
+      changed: true,
+    }
+  } catch (error) {
+    return {
+      changed: false,
+      error: error as Error,
+    }
+  }
 }
 
 export const FileCache = {
   init: async (options: ResolvedConfigOptions, rootDir: string) => {
     cacheEnabled = options.cache !== false
 
-    initCacheDir(rootDir, options.cacheDir)
+    await initCacheDir(rootDir, options.cacheDir)
 
     if (options.clearCache) {
       FileCache.clear()
     }
 
-    cache = (await createCache({
-      noCache: !cacheEnabled,
-      cacheDirectory: cacheDir.slice(0, -1),
-      mode: 'content',
-      keys: [
-        () => {
-          return JSON.stringify(options)
-        },
-      ],
-    })) as CacheInterface
+    await initCacheMaps()
   },
 
   prepareDirs: (filePaths: string[]): void => {
@@ -69,12 +113,12 @@ export const FileCache = {
     filePathFrom: string,
     fileToStack: StackItem[] = [],
   ) => {
-    const inputFileCache = await cache?.getAndUpdateCache(
+    const { changed, error } = await getAndUpdateCacheContent(
       baseDir + filePathFrom,
     )
 
     // Check if input file has changed or there was an error
-    if (inputFileCache.changed || inputFileCache.error) {
+    if (changed || error) {
       return false
     }
 
@@ -83,8 +127,7 @@ export const FileCache = {
       fileToStack.map(
         item =>
           new Promise((resolve, reject) =>
-            cache
-              .getAndUpdateCache(cacheDir + item.toPath)
+            getAndUpdateCacheContent(cacheDir + item.toPath)
               .then(outputFileCache => {
                 if (!outputFileCache.error && !outputFileCache.changed) {
                   copyFileSync(cacheDir + item.toPath, baseDir + item.toPath)
@@ -107,21 +150,37 @@ export const FileCache = {
   },
 
   update: async (baseDir: string, filePathTo: string) => {
-    if (cacheEnabled) {
-      copyFileSync(baseDir + filePathTo, cacheDir + filePathTo)
-      await cache.getAndUpdateCache(cacheDir + filePathTo)
-    }
-  },
-
-  reconcile: async () => {
-    await cache?.reconcile()
-  },
-
-  clear: () => {
-    if (!cache || !cacheDir) {
+    if (!cacheEnabled) {
       return
     }
 
-    rmSync(cacheDir.slice(0, -1), { recursive: true, force: true })
+    await copyFile(baseDir + filePathTo, cacheDir + filePathTo)
+    await getAndUpdateCacheContent(cacheDir + filePathTo)
+  },
+
+  reconcile: async () => {
+    if (!cacheEnabled) {
+      return true
+    }
+
+    try {
+      await writeFile(
+        cacheFile,
+        JSON.stringify(Object.fromEntries(entryMap)),
+        'utf-8',
+      )
+      // reflect the changes in the cacheMap
+      fileCacheMap = new Map(entryMap)
+      return true
+    } catch (error) {
+      //   console.error('Cache reconcile has failed', error)
+      return false
+    }
+  },
+
+  clear: () => {
+    if (cacheFile && cacheDir) {
+      rmSync(cacheDir.slice(0, -1), { recursive: true, force: true })
+    }
   },
 }
