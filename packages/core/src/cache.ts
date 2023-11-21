@@ -42,8 +42,12 @@ async function initCacheDir(rootDir: string, _cacheDir?: string) {
   await mkdir(cacheDir.slice(0, -1), { recursive: true })
 }
 
-async function initCacheMaps() {
-  cacheFile = path.join(cacheDir, 'contents')
+async function initCacheMaps(options: ResolvedConfigOptions) {
+  // create unique file for every different set of options
+  // does not take into account changes in plugin settings
+  // because these are unreachable at this point
+  const key = md5(JSON.stringify(options))
+  cacheFile = path.join(cacheDir, 'contents-' + key)
 
   try {
     const json = JSON.parse(await readFile(cacheFile, 'utf-8'))
@@ -94,7 +98,7 @@ export const FileCache = {
       await rm(cacheDir.slice(0, -1), { recursive: true, force: true })
     }
 
-    await initCacheMaps()
+    await initCacheMaps(options)
   },
 
   prepareDirs: (filePaths: string[]): void => {
