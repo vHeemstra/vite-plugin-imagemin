@@ -202,6 +202,7 @@ export type ProcessedFile = {
   newSizeString: string
   ratioString: string
   durationString: string
+  cached?: boolean
   optimizedDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']
   avifDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']
   webpDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']

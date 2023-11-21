@@ -215,19 +215,15 @@ export async function processFile({
     }) as Promise<ErroredFile>
   }
 
-  const hasValidCache = await FileCache.check(
+  // cached?
+  const cacheFileInfo = await FileCache.check(
     baseDir,
     filePathFrom,
     fileToStack,
   )
 
-  if (hasValidCache) {
-    return Promise.reject({
-      oldPath: filePathFrom,
-      newPath: '',
-      error: '',
-      errorType: 'cache',
-    }) as Promise<ErroredFile>
+  if (cacheFileInfo) {
+    return Promise.resolve(cacheFileInfo) as Promise<ProcessResultWhenOutput[]>
   }
 
   let oldBuffer: Buffer
@@ -327,12 +323,10 @@ export async function processFile({
               return Promise.reject(e)
             })
             .then(async () => {
-              // Add to/update in cache
-              await FileCache.update(baseDir, filePathTo)
-
               const duration = performance.now() - start
               const ratio = newSize / oldSize - 1
-              return Promise.resolve({
+
+              const fileInfo = {
                 oldPath: filePathFrom,
                 newPath: filePathTo,
                 oldSize,
@@ -349,7 +343,12 @@ export async function processFile({
                   ratio * 100
                 ).toFixed(precisions.ratio)} %`,
                 durationString: `${duration.toFixed(precisions.duration)} ms`,
-              })
+              }
+
+              // Add to/update in cache
+              await FileCache.update(baseDir, fileInfo)
+
+              return Promise.resolve(fileInfo)
             })
             .catch(error => {
               let errorType = 'error'
@@ -578,11 +577,18 @@ export function logResults(
             ? chalk.red(file.ratioString)
             : file.ratioString,
         chalk.dim(' │ '),
-
-        // Duration
-        ' '.repeat(maxLengths.duration - file.durationString.length),
-        chalk.dim(file.durationString),
       )
+
+      // cached?
+      if (file.cached) {
+        logArray.push(chalk.dim(` │ Cached`))
+      } else {
+        // Duration
+        logArray.push(
+          ' '.repeat(maxLengths.duration - file.durationString.length),
+          chalk.dim(file.durationString),
+        )
+      }
     }
 
     logger.info(logArray.join(''))
@@ -645,9 +651,6 @@ export function logErrors(
             file.error,
           )
           break
-        case 'cache':
-          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
-          break
         case 'warning':
           logArray.push(
             chalk.bgYellow(' WARNING '),
@@ -688,9 +691,6 @@ export function logErrors(
             ' ',
             file.error,
           )
-          break
-        case 'cache':
-          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
           break
         case 'warning':
           logArray.push(
