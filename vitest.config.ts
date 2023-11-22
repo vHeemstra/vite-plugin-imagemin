@@ -21,7 +21,7 @@ export default defineConfig({
       : 'default',
     coverage: {
       enabled: true,
-      // provider: 'c8',
+      // provider: 'v8',
       // allowExternal: true,
       //
       provider: 'istanbul',
