@@ -216,7 +216,9 @@ export function formatProcessedFile({
     ratioString: `${ratio > 0 ? '+' : ratio === 0 ? ' ' : ''}${(
       ratio * 100
     ).toFixed(precisions.ratio)} %`,
-    durationString: `${duration.toFixed(precisions.duration)} ms`,
+    durationString: fromCache
+      ? 'Cache'
+      : `${duration.toFixed(precisions.duration)} ms`,
     fromCache,
     optimizedDeleted: false as const,
     avifDeleted: false as const,
