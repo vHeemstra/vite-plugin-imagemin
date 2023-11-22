@@ -252,50 +252,6 @@ export async function processFile({
     })
   }
 
-  let cacheStack: (false | Promise<ProcessedFile>)[] = []
-
-  // TODO: Rewrite cache check and split this:
-  //       - get hash from cache (if present)
-  //       - after readFile below, make current hash and compare it
-  //       - check output cache in process pipeline as well?
-  //
-  // Reason: Since FileCache.checkAndCopy needs to read the file for checking,
-  //         we might as well do it only once as part of the process instead of twice.
-  const [inputCacheStatus, outputCacheStatus] = await FileCache.checkAndCopy(
-    baseDir,
-    filePathFrom,
-    fileToStack,
-  )
-
-  if (inputCacheStatus) {
-    let hasFullValidCache = true
-
-    cacheStack = outputCacheStatus.map((status, i) => {
-      if (isString(status)) {
-        hasFullValidCache = false
-        return false
-      }
-
-      return Promise.resolve(
-        formatProcessedFile({
-          oldPath: filePathFrom,
-          newPath: fileToStack[i].toPath,
-          oldSize: status.oldSize,
-          newSize: status.newSize,
-          duration: 0,
-          fromCache: true,
-          precisions,
-          bytesDivider,
-          sizeUnit,
-        }),
-      )
-    })
-
-    if (hasFullValidCache) {
-      return Promise.allSettled(cacheStack as Promise<ProcessedFile>[])
-    }
-  }
-
   let oldBuffer: Buffer
   let oldSize = 0
 
@@ -320,15 +276,43 @@ export async function processFile({
     })
   }
 
+  const inputFileCacheStatus = await FileCache.checkAndUpdate({
+    fileName: filePathFrom,
+    directory: baseDir,
+    buffer: oldBuffer,
+    restoreTo: false,
+  })
+  const skipCache = Boolean(
+    inputFileCacheStatus?.error || inputFileCacheStatus?.changed,
+  )
+
   const start = performance.now()
 
   return Promise.allSettled(
-    fileToStack.map(async (item, i) => {
-      if (cacheStack[i]) {
-        return cacheStack[i] as Promise<ProcessedFile>
-      }
-
+    fileToStack.map(async item => {
       const filePathTo = item.toPath
+
+      if (!skipCache) {
+        const outputFileCacheStatus = await FileCache.checkAndUpdate({
+          fileName: filePathTo,
+          restoreTo: baseDir,
+        })
+        if (!outputFileCacheStatus?.error && !outputFileCacheStatus?.changed) {
+          return Promise.resolve(
+            formatProcessedFile({
+              oldPath: filePathFrom,
+              newPath: filePathTo,
+              oldSize: outputFileCacheStatus?.value?.oldSize ?? 1,
+              newSize: outputFileCacheStatus?.value?.newSize ?? 1,
+              duration: 0,
+              fromCache: true,
+              precisions,
+              bytesDivider,
+              sizeUnit,
+            }),
+          )
+        }
+      }
 
       let newBuffer: Buffer
       let newSize = 0
@@ -368,9 +352,13 @@ export async function processFile({
         }
       }
 
-      await FileCache.update(baseDir, filePathTo, {
-        oldSize,
-        newSize,
+      await FileCache.update({
+        fileName: filePathTo,
+        buffer: newBuffer,
+        stats: {
+          oldSize,
+          newSize,
+        },
       })
 
       return Promise.resolve(

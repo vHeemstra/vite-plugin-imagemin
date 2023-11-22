@@ -1,6 +1,5 @@
 import crypto, { BinaryLike } from 'node:crypto'
-import { existsSync } from 'node:fs'
-import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { isAbsolute, resolve } from 'node:path'
 import { normalizePath } from 'vite'
 
@@ -11,7 +10,7 @@ import {
   smartEnsureDirs,
 } from './utils'
 
-import type { CacheValue, ResolvedConfigOptions, StackItem } from './typings'
+import type { CacheValue, ResolvedConfigOptions } from './typings'
 
 let cacheEnabled = false
 let cacheDir = ''
@@ -87,36 +86,61 @@ async function initCacheMaps() {
   fileCacheMap = new Map<string, CacheValue>(entryMap)
 }
 
-async function getAndUpdateCacheContent(
-  filePath: string,
-  stats?: Omit<CacheValue, 'hash'>,
-): Promise<{
+async function checkAndUpdate({
+  fileName,
+  directory,
+  stats,
+  buffer,
+  restoreTo,
+}: {
+  fileName?: string
+  directory?: string
+  stats?: Omit<CacheValue, 'hash'>
+  buffer?: Buffer
+  restoreTo?: string | false
+}): Promise<{
   changed?: boolean
   value?: CacheValue
   error?: Error
 }> {
-  let hash = ''
-  try {
-    hash = md5(await readFile(filePath))
-  } catch (error) {
-    return {
-      error: error as Error,
-    }
-  }
+  if (cacheEnabled) {
+    const filePath = (directory ?? cacheDir) + fileName
 
-  const cacheValue = fileCacheMap.get(filePath)
-  if (cacheValue && cacheValue.hash === hash) {
-    return {
-      changed: false,
-      value: cacheValue,
+    if (!buffer) {
+      try {
+        buffer = await readFile(filePath)
+      } catch (error) {
+        return {
+          error: error as Error,
+        }
+      }
     }
-  }
 
-  entryMap.set(filePath, {
-    hash,
-    oldSize: stats?.oldSize ?? 0,
-    newSize: stats?.newSize ?? 0,
-  })
+    const hash = md5(buffer)
+    const cacheValue = fileCacheMap.get(filePath)
+    if (cacheValue && cacheValue.hash === hash) {
+      if (restoreTo) {
+        try {
+          await writeFile(restoreTo + fileName, buffer)
+        } catch (error) {
+          return {
+            error: error as Error,
+          }
+        }
+      }
+
+      return {
+        changed: false,
+        value: cacheValue,
+      }
+    }
+
+    entryMap.set(filePath, {
+      hash,
+      oldSize: stats?.oldSize ?? 1,
+      newSize: stats?.newSize ?? 1,
+    })
+  }
 
   return {
     changed: true,
@@ -144,72 +168,47 @@ export const FileCache = {
     smartEnsureDirs(filePaths.map(file => cacheDir + file))
   },
 
-  checkAndCopy: async (
-    baseDir: string,
-    filePathFrom: string,
-    fileToStack: StackItem[] = [],
-  ): Promise<[boolean, (string | CacheValue)[]]> => {
+  checkAndUpdate: checkAndUpdate,
+
+  update: async ({
+    fileName,
+    directory,
+    stats,
+    buffer,
+  }: {
+    fileName?: string
+    directory?: string
+    stats?: Omit<CacheValue, 'hash'>
+    buffer: Buffer
+  }) => {
     if (!cacheEnabled) {
-      return [false, []]
+      return false
     }
 
-    const inputCacheStatus = await getAndUpdateCacheContent(
-      baseDir + filePathFrom,
-    )
-
-    // Check if input file has changed or there was an error
-    if (inputCacheStatus?.error || inputCacheStatus?.changed) {
-      return [false, []]
+    if (!buffer) {
+      return {
+        error: new Error('Missing content for cache file'),
+      }
     }
 
-    // Check if output files are in cache and use them if they haven't changed
-    const outputFilesExist = await Promise.allSettled(
-      fileToStack.map(async item => {
-        const outputCacheStatus = await getAndUpdateCacheContent(
-          cacheDir + item.toPath,
-        )
+    const filePath = (directory ?? cacheDir) + fileName
 
-        if (outputCacheStatus?.error) {
-          return `Cache error [${outputCacheStatus.error.message}]`
-        }
-
-        if (outputCacheStatus?.changed) {
-          return 'File changed'
-        }
-
-        try {
-          await copyFile(cacheDir + item.toPath, baseDir + item.toPath)
-        } catch (error) {
-          return `Could not copy cached file [${(error as Error).message}]`
-        }
-
-        if (!existsSync(baseDir + item.toPath)) {
-          return 'Could not use cached file'
-        }
-
-        return outputCacheStatus.value as CacheValue
-      }),
-    )
-
-    return [
-      true,
-      outputFilesExist.map(p =>
-        p.status === 'fulfilled' ? p.value : p.reason,
-      ),
-    ]
-  },
-
-  update: async (
-    baseDir: string,
-    filePathTo: string,
-    stats: Omit<CacheValue, 'hash'>,
-  ) => {
-    if (!cacheEnabled) {
-      return
+    try {
+      await writeFile(filePath, buffer)
+    } catch (error) {
+      return {
+        error: new Error(
+          `Could not write cache file [${(error as Error).message}]`,
+        ),
+      }
     }
 
-    await copyFile(baseDir + filePathTo, cacheDir + filePathTo)
-    await getAndUpdateCacheContent(cacheDir + filePathTo, stats)
+    return await checkAndUpdate({
+      fileName,
+      directory,
+      buffer,
+      stats,
+    })
   },
 
   reconcile: async () => {
