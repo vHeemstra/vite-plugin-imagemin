@@ -1,4 +1,6 @@
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { dirname, join, parse, resolve } from 'node:path'
+import { cwd } from 'node:process'
 import { FilterPattern } from 'vite'
 // import { ensureDirSync } from 'fs-extra'
 
@@ -65,4 +67,39 @@ export function smartEnsureDirs(filePaths: string[], mode = 0o0755): string[] {
       // ensureDirSync(dir, { mode })
       return dir
     })
+}
+
+export function getPackageDirectory() {
+  let filePath = ''
+  let directory = resolve(cwd())
+  const { root } = parse(directory)
+  const stopAt = resolve(directory, root)
+
+  while (directory && directory !== stopAt && directory !== root) {
+    filePath = join(directory, 'package.json')
+
+    try {
+      const stats = statSync(filePath, { throwIfNoEntry: false })
+      if (stats?.isFile()) {
+        break
+      }
+    } catch {
+      /* ignore */
+    }
+
+    directory = dirname(directory)
+  }
+
+  return filePath && dirname(filePath)
+}
+
+export const getPackageName = (pkgPath: string) => {
+  const pkgFile = join(pkgPath, 'package.json')
+  try {
+    const pkg = readFileSync(pkgFile, 'utf8')
+    const pkgJson = JSON.parse(pkg)
+    return pkgJson.name
+  } catch {
+    return 'file-cache'
+  }
 }

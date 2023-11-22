@@ -1,48 +1,40 @@
-import path from 'node:path'
-import {
-  existsSync,
-  mkdirSync,
-  lstatSync,
-  readdirSync,
-  unlinkSync /*, rmSync */,
-  copyFileSync,
-} from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
-import { Buffer } from 'node:buffer'
-import { performance } from 'node:perf_hooks'
 import chalk from 'chalk'
-import { normalizePath, createFilter } from 'vite'
 import imagemin from 'imagemin'
 import isAPNG from 'is-apng'
-import { createCache } from '@file-cache/core'
+import { Buffer } from 'node:buffer'
+import { lstatSync, readdirSync, unlinkSync } from 'node:fs'
+import { readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { performance } from 'node:perf_hooks'
+import { createFilter, normalizePath } from 'vite'
 
+import { FileCache } from './cache'
 import {
-  isFunction,
-  isBoolean,
-  isString,
-  isObject,
-  isFilterPattern,
   escapeRegExp,
+  isBoolean,
+  isFilterPattern,
+  isFunction,
+  isObject,
+  isString,
   smartEnsureDirs,
 } from './utils'
 
 import type { PluginOption, ResolvedConfig } from 'vite'
-import type { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
 import type {
   ConfigOptions,
-  ResolvedConfigOptions,
-  ResolvedPluginsConfig,
-  ResolvedMakeConfigOptions,
-  PluginsConfig,
-  Logger,
-  Stack,
-  ProcessFileParams,
-  ProcessedFile,
   ErroredFile,
-  ProcessedResults,
-  ProcessResultWhenOutput,
-  ProcessResult,
+  FormatProcessedFileParams,
+  Logger,
+  PluginsConfig,
+  ProcessFileParams,
   ProcessFileReturn,
+  ProcessResult,
+  ProcessedFile,
+  ProcessedResults,
+  ResolvedConfigOptions,
+  ResolvedMakeConfigOptions,
+  ResolvedPluginsConfig,
+  Stack,
 } from './typings'
 
 // export const pathIsWithin = (parentPath: string, childPath: string) => {
@@ -151,6 +143,9 @@ export const parseOptions = (
       ? _options.skipIfLarger
       : true,
     cache: isBoolean(_options?.cache) ? _options.cache : true,
+    cacheDir: isString(_options?.cacheDir) ? _options.cacheDir : undefined,
+    cacheKey: isString(_options?.cacheDir) ? _options.cacheDir : '',
+    clearCache: isBoolean(_options?.clearCache) ? _options.clearCache : false,
     plugins,
     makeAvif,
     makeWebp,
@@ -192,6 +187,45 @@ export function getAllFiles(dir: string, logger: Logger): string[] {
   return files
 }
 
+export function formatProcessedFile({
+  oldPath,
+  newPath,
+  oldSize,
+  newSize,
+  duration,
+  fromCache,
+  precisions,
+  bytesDivider,
+  sizeUnit,
+}: FormatProcessedFileParams): ProcessedFile {
+  const ratio = newSize / oldSize - 1
+
+  return {
+    oldPath,
+    newPath,
+    oldSize,
+    newSize,
+    ratio,
+    duration,
+    oldSizeString: `${(oldSize / bytesDivider).toFixed(
+      precisions.size,
+    )} ${sizeUnit}`,
+    newSizeString: `${(newSize / bytesDivider).toFixed(
+      precisions.size,
+    )} ${sizeUnit}`,
+    ratioString: `${ratio > 0 ? '+' : ratio === 0 ? ' ' : ''}${(
+      ratio * 100
+    ).toFixed(precisions.ratio)} %`,
+    durationString: fromCache
+      ? 'Cache'
+      : `${duration.toFixed(precisions.duration)} ms`,
+    fromCache,
+    optimizedDeleted: false as const,
+    avifDeleted: false as const,
+    webpDeleted: false as const,
+  }
+}
+
 export async function processFile({
   filePathFrom,
   fileToStack = [],
@@ -199,18 +233,14 @@ export async function processFile({
   precisions,
   bytesDivider,
   sizeUnit,
-  cacheDir = '',
-  cache = null,
 }: ProcessFileParams): ProcessFileReturn {
-  // const start = performance.now()
-
   if (!filePathFrom?.length) {
     return Promise.reject({
       oldPath: filePathFrom,
       newPath: '',
       error: 'Empty filepath',
       errorType: 'error',
-    }) as Promise<ErroredFile>
+    })
   }
 
   if (!fileToStack?.length) {
@@ -219,215 +249,133 @@ export async function processFile({
       newPath: '',
       error: 'Empty to-stack',
       errorType: 'error',
-    }) as Promise<ErroredFile>
-  }
-
-  if (cache) {
-    // Check if input file hasn't changed
-    const inputFileCache = await cache.getAndUpdateCache(baseDir + filePathFrom)
-
-    if (!inputFileCache.error && !inputFileCache.changed) {
-      // Check if output files are in cache and use them if they haven't changed
-      const outputFilesExist = await Promise.allSettled(
-        fileToStack.map(
-          item =>
-            new Promise((resolve, reject) =>
-              cache
-                .getAndUpdateCache(cacheDir + item.toPath)
-                .then(outputFileCache => {
-                  if (!outputFileCache.error && !outputFileCache.changed) {
-                    copyFileSync(cacheDir + item.toPath, baseDir + item.toPath)
-                    if (existsSync(baseDir + item.toPath)) {
-                      resolve(true)
-                    }
-                  }
-                  reject(
-                    outputFileCache.error
-                      ? `Error while checking cache [${outputFileCache.error.message}]`
-                      : 'Could not copy cached files',
-                  )
-                })
-                .catch(reject),
-            ),
-        ),
-      )
-
-      if (outputFilesExist.every(p => p.status === 'fulfilled')) {
-        return Promise.reject({
-          oldPath: filePathFrom,
-          newPath: '',
-          error: '',
-          errorType: 'cache',
-        }) as Promise<ErroredFile>
-      }
-    }
+    })
   }
 
   let oldBuffer: Buffer
   let oldSize = 0
 
-  return readFile(baseDir + filePathFrom)
-    .then(buffer => {
-      const start = performance.now()
+  try {
+    oldBuffer = await readFile(baseDir + filePathFrom)
+    oldSize = oldBuffer.byteLength
+  } catch (error) {
+    return Promise.reject({
+      oldPath: filePathFrom,
+      newPath: '',
+      error: `Error reading file [${(error as Error).message}]`,
+      errorType: 'error',
+    })
+  }
 
-      oldBuffer = buffer
-      oldSize = oldBuffer.byteLength
+  if (filePathFrom.match(/\.a?png$/i) && isAPNG(oldBuffer)) {
+    return Promise.reject({
+      oldPath: filePathFrom,
+      newPath: '',
+      error: `Animated PNGs not supported`,
+      errorType: 'skip',
+    })
+  }
 
-      // TODO: handle elsewhere with
-      // (to-make-myself) `imagemin-apngquant` plugin
-      // `imagemin-apngquant` uses:
-      //  - is-apng
-      //  - apngdis-bin
-      //  - (concat frames to strip) [see script at: ...?]
-      //  - optimize using:
-      //    - user-supplied plugin + options
-      //    ? pngquant fallback
-      //  - apng-asm (strip to apng)
-      if (filePathFrom.match(/\.a?png$/i) && isAPNG(buffer)) {
-        /**
-         * TODO:
-         * - apngdis the input APNG, then:
-         * - if output path .png: make strip + run plugins + apngasm from strip + output
-         * - if output path .webp: plugin each frame + run frames through webpmux-bin + single .webp output
-         *
-         * @see C:\Users\phili\Desktop\APNG\test\index.js
-         */
-        throw new Error('SKIP: Animated PNGs not supported')
+  const inputFileCacheStatus = await FileCache.checkAndUpdate({
+    fileName: filePathFrom,
+    directory: baseDir,
+    buffer: oldBuffer,
+    restoreTo: false,
+  })
+  const skipCache = Boolean(
+    inputFileCacheStatus?.error || inputFileCacheStatus?.changed,
+  )
 
-        // Copy input to tmp dir .png
+  const start = performance.now()
 
-        // apngdis-bin: this file to frame `.png`s
+  return Promise.allSettled(
+    fileToStack.map(async item => {
+      const filePathTo = item.toPath
 
-        // convert/optimize each .png to .webp
-
-        // webpmux-bin: combine all .webp to final .webp
-
-        // // const fileString = buffer.toString('utf8')
-        // const idatIdx = buffer.indexOf('IDAT')
-        // const actlIdx = buffer.indexOf('acTL')
-        // if (
-        //   filePathFrom.endsWith('.png') &&
-        //   idatIdx > 0 &&
-        //   actlIdx > 0 &&
-        //   idatIdx > actlIdx
-        // ) {
-        //   throw new Error('SKIP: Animated PNGs not supported')
-        // }
+      if (!skipCache) {
+        const outputFileCacheStatus = await FileCache.checkAndUpdate({
+          fileName: filePathTo,
+          restoreTo: baseDir,
+        })
+        if (!outputFileCacheStatus?.error && !outputFileCacheStatus?.changed) {
+          return Promise.resolve(
+            formatProcessedFile({
+              oldPath: filePathFrom,
+              newPath: filePathTo,
+              oldSize: outputFileCacheStatus?.value?.oldSize ?? 1,
+              newSize: outputFileCacheStatus?.value?.newSize ?? 1,
+              duration: 0,
+              fromCache: true,
+              precisions,
+              bytesDivider,
+              sizeUnit,
+            }),
+          )
+        }
       }
 
-      return Promise.allSettled(
-        fileToStack.map(item => {
-          let newBuffer: Buffer
-          let newSize = 0
+      let newBuffer: Buffer
+      let newSize = 0
 
-          const filePathTo = item.toPath
+      try {
+        newBuffer = await imagemin.buffer(oldBuffer, { plugins: item.plugins })
+        newSize = newBuffer.byteLength
+      } catch (error) {
+        return Promise.reject({
+          oldPath: filePathFrom,
+          newPath: filePathTo,
+          error: `Error processing file:\n${
+            (error as Error)?.message ?? error
+          }`,
+          errorType: 'error',
+        })
+      }
 
-          return imagemin
-            .buffer(oldBuffer, { plugins: item.plugins })
-            .catch(e =>
-              Promise.reject(
-                // e.message ? `Error processing file [${e.message}]` : e,
-                e.message ? `Error processing file:\n${e.message}` : e,
-              ),
-            )
-            .then(buffer2 => {
-              newBuffer = buffer2
-              newSize = newBuffer.byteLength
+      /**
+       * NOTE: Don't overwrite the original if the optimized content is larger,
+       *       the option is set and this doesn't concern a WebP/Avif version.
+       */
+      if (
+        newSize <= oldSize ||
+        filePathFrom !== filePathTo ||
+        false === item.skipIfLarger
+      ) {
+        try {
+          await writeFile(baseDir + filePathTo, newBuffer)
+        } catch (error) {
+          return Promise.reject({
+            oldPath: filePathFrom,
+            newPath: filePathTo,
+            error: `Error writing file [${(error as Error).message}]`,
+            errorType: 'error',
+          })
+        }
+      }
 
-              if (false !== item.skipIfLarger && newSize > oldSize) {
-                // throw new Error('SKIP: Output is larger')
-                if (filePathTo === filePathFrom) {
-                  // NOTE:
-                  // If this optimized file is larger than original
-                  // and this is not a WebP/Avif version;
-                  // don't overwrite the original, but do continue (to have it log with the rest).
-                  return Promise.resolve()
-                }
-              }
+      await FileCache.update({
+        fileName: filePathTo,
+        buffer: newBuffer,
+        stats: {
+          oldSize,
+          newSize,
+        },
+      })
 
-              // const newDirectory = path.dirname(baseDir + filePathTo)
-              // await ensureDir(newDirectory, 0o755)
-              return writeFile(baseDir + filePathTo, newBuffer)
-            })
-            .catch(e => {
-              if (e?.message) {
-                if (e.message.startsWith('SKIP: ')) {
-                  e = e.message
-                } else {
-                  e = `Error writing file [${e.message}]`
-                }
-              }
-              return Promise.reject(e)
-            })
-            .then(async () => {
-              // Add to/update in cache
-              if (cache) {
-                copyFileSync(baseDir + filePathTo, cacheDir + filePathTo)
-                await cache.getAndUpdateCache(cacheDir + filePathTo)
-              }
-
-              const duration = performance.now() - start
-              const ratio = newSize / oldSize - 1
-              return Promise.resolve({
-                oldPath: filePathFrom,
-                newPath: filePathTo,
-                oldSize,
-                newSize,
-                ratio,
-                duration,
-                oldSizeString: `${(oldSize / bytesDivider).toFixed(
-                  precisions.size,
-                )} ${sizeUnit}`,
-                newSizeString: `${(newSize / bytesDivider).toFixed(
-                  precisions.size,
-                )} ${sizeUnit}`,
-                ratioString: `${ratio > 0 ? '+' : ratio === 0 ? ' ' : ''}${(
-                  ratio * 100
-                ).toFixed(precisions.ratio)} %`,
-                durationString: `${duration.toFixed(precisions.duration)} ms`,
-              })
-            })
-            .catch(error => {
-              let errorType = 'error'
-              if (error.startsWith('SKIP: ')) {
-                error = error.slice(6)
-                errorType = 'skip'
-              } else if (error.startsWith('WARN: ')) {
-                error = error.slice(6)
-                errorType = 'warning'
-              }
-
-              return Promise.reject({
-                oldPath: filePathFrom,
-                newPath: filePathTo,
-                error,
-                errorType,
-              })
-            })
+      return Promise.resolve(
+        formatProcessedFile({
+          oldPath: filePathFrom,
+          newPath: filePathTo,
+          oldSize,
+          newSize,
+          duration: performance.now() - start,
+          fromCache: false,
+          precisions,
+          bytesDivider,
+          sizeUnit,
         }),
-      ) as Promise<ProcessResultWhenOutput[]>
-    })
-    .catch(e => {
-      let errorType = 'error'
-      // if (e?.message) {
-      if (e.message.startsWith('SKIP: ')) {
-        e = e.message.slice(6)
-        errorType = 'skip'
-        // } else if (e.message.startsWith('WARN: ')) {
-        //   e = e.message.slice(6)
-        //   errorType = 'warning'
-      } else {
-        e = `Error reading file [${e.message}]`
-      }
-      // }
-
-      return Promise.reject({
-        oldPath: filePathFrom,
-        newPath: '',
-        error: e,
-        errorType,
-      }) as Promise<ErroredFile>
-    })
+      )
+    }),
+  )
 }
 
 export function processResults(results: ProcessResult[]): ProcessedResults {
@@ -565,7 +513,7 @@ export function logResults(
       // Skipped file
       logArray.push(
         // Filename
-        chalk.dim(basenameTo),
+        file.fromCache ? chalk.blue.dim(basenameTo) : chalk.dim(basenameTo),
         ' '.repeat(
           maxPathLength - bulletLength - file.newPath.length + spaceLength,
         ),
@@ -593,7 +541,9 @@ export function logResults(
       logArray.push(
         // Filename
         file.ratio < 0
-          ? chalk.green(basenameTo)
+          ? file.fromCache
+            ? chalk.blue(basenameTo)
+            : chalk.green(basenameTo)
           : file.ratio > 0
             ? chalk.yellow(basenameTo)
             : basenameTo,
@@ -681,9 +631,6 @@ export function logErrors(
             file.error,
           )
           break
-        case 'cache':
-          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
-          break
         case 'warning':
           logArray.push(
             chalk.bgYellow(' WARNING '),
@@ -724,9 +671,6 @@ export function logErrors(
             ' ',
             file.error,
           )
-          break
-        case 'cache':
-          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
           break
         case 'warning':
           logArray.push(
@@ -791,9 +735,6 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
   let hadFilesToProcess = false
   // const mtimeCache = new Map<string, number>()
 
-  let cache: CacheInterface
-  let cacheDir = ''
-
   return {
     name: 'vite-plugin-imagemin',
     enforce: 'post',
@@ -812,7 +753,6 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
       outDir = normalizePath(path.resolve(rootDir, config.build.outDir))
       assetsDir = normalizePath(path.resolve(outDir, config.build.assetsDir))
       // publicDir = normalizePath(path.resolve(rootDir, config.publicDir))
-      cacheDir = `${rootDir}/node_modules/.cache/vite-plugin-imagemin/`
 
       // const emptyOutDir = config.build.emptyOutDir || pathIsWithin(rootDir, outDir)
 
@@ -825,20 +765,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
 
       logger.info('')
 
-      // Create cache
-      if (options.cache !== false) {
-        cache = (await createCache({
-          // noCache: options.cache === false,
-          mode: 'content',
-          keys: [
-            () => {
-              return JSON.stringify(options)
-            },
-          ],
-        })) as CacheInterface
-
-        mkdirSync(cacheDir.slice(0, -1), { recursive: true })
-      }
+      await FileCache.init(options, rootDir)
 
       const processDir = onlyAssets ? assetsDir : outDir
       const baseDir = `${rootDir}/`
@@ -932,9 +859,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
 
       // Ensure all destination (sub)directories are present
       smartEnsureDirs(toPaths.map(file => baseDir + file))
-      if (options.cache !== false) {
-        smartEnsureDirs(toPaths.map(file => cacheDir + file))
-      }
+      FileCache.prepareDirs(toPaths)
 
       // Process stack
       const {
@@ -953,8 +878,6 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
               precisions,
               bytesDivider,
               sizeUnit,
-              cacheDir,
-              cache,
             }),
           ),
         ) as Promise<ProcessResult[]>
@@ -1068,10 +991,7 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
             logResults(processedFiles[k], logger, maxLengths)
           })
 
-        // Write cache state to file for persistence
-        if (options.cache !== false) {
-          await cache.reconcile()
-        }
+        FileCache.reconcile()
 
         Object.keys(erroredFiles)
           .sort((a, b) => a.localeCompare(b)) // TODO: sort by (sub)folder and depth?

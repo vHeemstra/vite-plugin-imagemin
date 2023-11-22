@@ -87,6 +87,27 @@ export interface ConfigOptions {
   cache?: boolean
 
   /**
+   * Path of the directory to use for caching.
+   * Either:
+   *   - relative path to Vite's root
+   *   - absolute path
+   * @default <packageRoot>/node_modules/.cache/vite-plugin-imagemin
+   */
+  cacheDir?: string
+
+  /**
+   * Optional string to distinguish build configs and their caches.
+   * @default ''
+   */
+  cacheKey?: string
+
+  /**
+   * Force-clear the cache.
+   * @default false
+   */
+  clearCache?: boolean
+
+  /**
    * Only use optimized contents if smaller than original.
    * @default true
    */
@@ -136,6 +157,9 @@ export interface ResolvedConfigOptions {
   verbose: boolean
   skipIfLarger: boolean
   cache: boolean
+  cacheDir?: string
+  clearCache: boolean
+  cacheKey: string
   plugins: ResolvedPluginsConfig
   makeAvif: false | ResolvedMakeConfigOptions
   makeWebp: false | ResolvedMakeConfigOptions
@@ -157,6 +181,22 @@ type StackItem = {
 
 export type Stack = {
   [fromPath: string]: StackItem[]
+}
+
+export type FormatProcessedFileParams = {
+  oldPath: string
+  newPath: string
+  oldSize: number
+  newSize: number
+  duration: number
+  fromCache: boolean
+  precisions: {
+    size: number
+    ratio: number
+    duration: number
+  }
+  bytesDivider: number
+  sizeUnit: string
 }
 
 export type ProcessFileParams = {
@@ -188,6 +228,7 @@ export type ProcessedFile = {
   optimizedDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']
   avifDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']
   webpDeleted: ResolvedMakeConfigOptions['skipIfLargerThan']
+  fromCache: boolean
 }
 
 export type ErroredFile = {
@@ -237,3 +278,9 @@ export type ProcessResult =
   | IPromiseRejectedResult<ErroredFile>
 
 export type ProcessFileReturn = Promise<ErroredFile | ProcessResultWhenOutput[]>
+
+export type CacheValue = {
+  hash: string
+  oldSize: number
+  newSize: number
+}

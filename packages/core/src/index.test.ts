@@ -642,7 +642,7 @@ describe('processFile', () => {
     })
   })
 
-  it('returns error object if OUTPUT PROCESS error (Error & warn)', async () => {
+  it('returns error object if OUTPUT PROCESS error (Error & string)', async () => {
     await expect(
       // @ts-expect-error missing properties are used after expected error
       processFile({
@@ -655,9 +655,9 @@ describe('processFile', () => {
               //   optimization: 4,
               //   strip: 'safe',
               // }),
-              () => Promise.reject(new Error('Test')),
+              () => Promise.reject(new Error('Test error processing file')),
               // () => {
-              //   throw new Error('Test')
+              //   throw new Error('Test error processing file')
               // },
             ],
             skipIfLarger: false,
@@ -668,7 +668,9 @@ describe('processFile', () => {
     ).resolves.toContainEqual({
       status: 'rejected',
       reason: expect.objectContaining({
-        error: expect.stringMatching(/^Error processing file/),
+        error: expect.stringMatching(
+          /^Error processing file:\s+Test error processing file/,
+        ),
       }),
     })
 
@@ -684,9 +686,9 @@ describe('processFile', () => {
               //   optimization: 4,
               //   strip: 'safe',
               // }),
-              () => Promise.reject('WARN: Test error processing file'),
+              () => Promise.reject('Test error processing file'),
               // () => {
-              //   throw 'WARN: Test error processing file'
+              //   throw 'Test error processing file'
               // },
             ],
             skipIfLarger: false,
@@ -697,7 +699,9 @@ describe('processFile', () => {
     ).resolves.toContainEqual({
       status: 'rejected',
       reason: expect.objectContaining({
-        error: 'Test error processing file',
+        error: expect.stringMatching(
+          /^Error processing file:\s*Test error processing file/,
+        ),
       }),
     })
   })
@@ -1368,7 +1372,7 @@ describe('logErrors', () => {
  *    dist/images/opaque-1.png.avif
  */
 
-// TODO: add tests for usage with cache
+// TODO: add tests for cache usage and its options
 // TODO: expand after-build checks
 
 describe.skipIf(skipBuilds)('viteImagemin', () => {
