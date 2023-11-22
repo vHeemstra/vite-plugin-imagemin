@@ -93,7 +93,7 @@ async function checkAndUpdate({
   buffer,
   restoreTo,
 }: {
-  fileName?: string
+  fileName: string
   directory?: string
   stats?: Omit<CacheValue, 'hash'>
   buffer?: Buffer
@@ -104,6 +104,12 @@ async function checkAndUpdate({
   error?: Error
 }> {
   if (cacheEnabled) {
+    if (!fileName) {
+      return {
+        error: new Error('Missing filename'),
+      }
+    }
+
     const filePath = (directory ?? cacheDir) + fileName
 
     if (!buffer) {
@@ -172,17 +178,23 @@ export const FileCache = {
 
   update: async ({
     fileName,
+    buffer,
     directory,
     stats,
-    buffer,
   }: {
-    fileName?: string
+    fileName: string
+    buffer: Buffer
     directory?: string
     stats?: Omit<CacheValue, 'hash'>
-    buffer: Buffer
   }) => {
     if (!cacheEnabled) {
       return false
+    }
+
+    if (!fileName) {
+      return {
+        error: new Error('Missing filename'),
+      }
     }
 
     if (!buffer) {
