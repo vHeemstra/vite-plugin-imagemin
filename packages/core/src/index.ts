@@ -144,7 +144,7 @@ export const parseOptions = (
       : true,
     cache: isBoolean(_options?.cache) ? _options.cache : true,
     cacheDir: isString(_options?.cacheDir) ? _options.cacheDir : undefined,
-    cacheKey: isString(_options?.cacheDir) ? _options.cacheDir : '',
+    cacheKey: isString(_options?.cacheKey) ? _options.cacheKey : '',
     clearCache: isBoolean(_options?.clearCache) ? _options.clearCache : false,
     plugins,
     makeAvif,

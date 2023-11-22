@@ -24,6 +24,10 @@ function md5(buffer: BinaryLike): string {
 }
 
 export function createCacheKey(options: ResolvedConfigOptions) {
+  if (options.cacheKey) {
+    return options.cacheKey
+  }
+
   return md5(
     Object.entries(options)
       .filter(
