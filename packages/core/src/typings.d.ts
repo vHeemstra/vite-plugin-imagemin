@@ -1,6 +1,5 @@
 import type { Logger as ViteLogger, FilterPattern } from 'vite'
 import type { Plugin as ImageminPlugin } from 'imagemin'
-import { CacheInterface } from '@file-cache/core/mjs/CacheInterface'
 
 // type Required<T> = {
 //   [P in keyof T]-?: T[P]
@@ -211,7 +210,6 @@ export type ProcessFileParams = {
   bytesDivider: number
   sizeUnit: string
   cacheDir?: string
-  cache?: CacheInterface | null
 }
 
 export type ProcessedFile = {
