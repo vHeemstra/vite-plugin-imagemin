@@ -109,30 +109,6 @@ Default: `true`
 
 > Ignore the optimized output if it is larger than the original file.
 
-### cache
-
-Type: `boolean`<br>
-Default: `true`
-
-> Skip optimizing the input if it did not change since the last run.
-
-### cacheDir
-
-Type: `string`<br>
-Default: `<packageRoot>/node_modules/.cache/vite-plugin-imagemin/<packageName>/`
-
-> Choose the directory to use for caching.
-> - Relative paths will be relative to the Vite project's **root** directory.
-> - Absolute paths will be use as-is.
-> - Absent/non-string value will use the default location.
-
-### clearCache
-
-Type: `boolean`<br>
-Default: `false`
-
-> Clears the cache folder before processing.
-
 ### makeAvif / makeWebp
 
 Type: `object`<br>
@@ -163,6 +139,40 @@ Default: `'optimized'`
 > - larger than the optimized image (`'optimized'`)
 > - it is not the smallest version of the image (`'smallest'`)
 > - never skip (`false`)
+
+### cache
+
+Type: `boolean`<br>
+Default: `true`
+
+> Skip optimizing the input if it did not change since the last run.
+
+### cacheDir
+
+Type: `string`<br>
+Default: `<packageRoot>/node_modules/.cache/vite-plugin-imagemin/<packageName>/`
+
+> Choose the directory to use for caching.
+> - Relative paths will be relative to the Vite project's **root** directory.
+> - Absolute paths will be use as-is.
+> - Absent/non-string value will use the default location.
+
+### cacheKey
+
+Type: `string`<br>
+Default: ``
+
+> Optional string to distinguish build configs and their caches.
+>
+> The cache identifier is a hash of most used options including this key.
+> Note: Because options like `formatFilePath` and `plugins` cannot be stringified, they will have little or no influence on the hash key and its uniqueness.
+
+### clearCache
+
+Type: `boolean`<br>
+Default: `false`
+
+> Clears the cache folder before processing.
 
 ### root
 

@@ -215,3 +215,4 @@ describe('smartEnsureDirs', () => {
 })
 
 // TODO: add tests for getPackageDirectory and getPackageName
+// TODO: create `cache.test.ts` with tests for cache functions

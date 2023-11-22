@@ -9,7 +9,6 @@ import { performance } from 'node:perf_hooks'
 import { createFilter, normalizePath } from 'vite'
 
 import { FileCache } from './cache'
-
 import {
   escapeRegExp,
   isBoolean,
@@ -24,12 +23,12 @@ import type { PluginOption, ResolvedConfig } from 'vite'
 import type {
   ConfigOptions,
   ErroredFile,
+  FormatProcessedFileParams,
   Logger,
   PluginsConfig,
   ProcessFileParams,
   ProcessFileReturn,
   ProcessResult,
-  ProcessResultWhenOutput,
   ProcessedFile,
   ProcessedResults,
   ResolvedConfigOptions,
@@ -145,6 +144,7 @@ export const parseOptions = (
       : true,
     cache: isBoolean(_options?.cache) ? _options.cache : true,
     cacheDir: isString(_options?.cacheDir) ? _options.cacheDir : undefined,
+    cacheKey: isString(_options?.cacheDir) ? _options.cacheDir : '',
     clearCache: isBoolean(_options?.clearCache) ? _options.clearCache : false,
     plugins,
     makeAvif,
@@ -187,6 +187,43 @@ export function getAllFiles(dir: string, logger: Logger): string[] {
   return files
 }
 
+export function formatProcessedFile({
+  oldPath,
+  newPath,
+  oldSize,
+  newSize,
+  duration,
+  fromCache,
+  precisions,
+  bytesDivider,
+  sizeUnit,
+}: FormatProcessedFileParams) {
+  const ratio = newSize / oldSize - 1
+
+  return {
+    oldPath,
+    newPath,
+    oldSize,
+    newSize,
+    ratio,
+    duration,
+    oldSizeString: `${(oldSize / bytesDivider).toFixed(
+      precisions.size,
+    )} ${sizeUnit}`,
+    newSizeString: `${(newSize / bytesDivider).toFixed(
+      precisions.size,
+    )} ${sizeUnit}`,
+    ratioString: `${ratio > 0 ? '+' : ratio === 0 ? ' ' : ''}${(
+      ratio * 100
+    ).toFixed(precisions.ratio)} %`,
+    durationString: `${duration.toFixed(precisions.duration)} ms`,
+    fromCache,
+    optimizedDeleted: false as const,
+    avifDeleted: false as const,
+    webpDeleted: false as const,
+  }
+}
+
 export async function processFile({
   filePathFrom,
   fileToStack = [],
@@ -215,19 +252,41 @@ export async function processFile({
     }) as Promise<ErroredFile>
   }
 
-  const hasValidCache = await FileCache.check(
+  const [inputCacheStatus, outputCacheStatus] = await FileCache.checkAndCopy(
     baseDir,
     filePathFrom,
     fileToStack,
   )
 
-  if (hasValidCache) {
-    return Promise.reject({
-      oldPath: filePathFrom,
-      newPath: '',
-      error: '',
-      errorType: 'cache',
-    }) as Promise<ErroredFile>
+  let cacheStack: (false | Promise<ProcessedFile>)[] = []
+
+  if (inputCacheStatus) {
+    let hasFullValidCache = true
+
+    cacheStack = outputCacheStatus.map((status, i) => {
+      if (isString(status)) {
+        hasFullValidCache = false
+        return false
+      }
+
+      return Promise.resolve(
+        formatProcessedFile({
+          oldPath: filePathFrom,
+          newPath: fileToStack[i].toPath,
+          oldSize: status.oldSize,
+          newSize: status.newSize,
+          duration: 0,
+          fromCache: true,
+          precisions,
+          bytesDivider,
+          sizeUnit,
+        }),
+      )
+    })
+
+    if (hasFullValidCache) {
+      return Promise.allSettled(cacheStack as Promise<ProcessedFile>[])
+    }
   }
 
   let oldBuffer: Buffer
@@ -283,11 +342,15 @@ export async function processFile({
       }
 
       return Promise.allSettled(
-        fileToStack.map(item => {
+        fileToStack.map((item, i) => {
           let newBuffer: Buffer
           let newSize = 0
 
           const filePathTo = item.toPath
+
+          if (cacheStack[i]) {
+            return cacheStack[i] as Promise<ProcessedFile>
+          }
 
           return imagemin
             .buffer(oldBuffer, { plugins: item.plugins })
@@ -327,29 +390,24 @@ export async function processFile({
               return Promise.reject(e)
             })
             .then(async () => {
-              // Add to/update in cache
-              await FileCache.update(baseDir, filePathTo)
-
-              const duration = performance.now() - start
-              const ratio = newSize / oldSize - 1
-              return Promise.resolve({
-                oldPath: filePathFrom,
-                newPath: filePathTo,
+              await FileCache.update(baseDir, filePathTo, {
                 oldSize,
                 newSize,
-                ratio,
-                duration,
-                oldSizeString: `${(oldSize / bytesDivider).toFixed(
-                  precisions.size,
-                )} ${sizeUnit}`,
-                newSizeString: `${(newSize / bytesDivider).toFixed(
-                  precisions.size,
-                )} ${sizeUnit}`,
-                ratioString: `${ratio > 0 ? '+' : ratio === 0 ? ' ' : ''}${(
-                  ratio * 100
-                ).toFixed(precisions.ratio)} %`,
-                durationString: `${duration.toFixed(precisions.duration)} ms`,
               })
+
+              return Promise.resolve(
+                formatProcessedFile({
+                  oldPath: filePathFrom,
+                  newPath: filePathTo,
+                  oldSize,
+                  newSize,
+                  duration: performance.now() - start,
+                  fromCache: false,
+                  precisions,
+                  bytesDivider,
+                  sizeUnit,
+                }),
+              )
             })
             .catch(error => {
               let errorType = 'error'
@@ -369,26 +427,26 @@ export async function processFile({
               })
             })
         }),
-      ) as Promise<ProcessResultWhenOutput[]>
+      )
     })
     .catch(e => {
       let errorType = 'error'
-      // if (e?.message) {
-      if (e.message.startsWith('SKIP: ')) {
-        e = e.message.slice(6)
+      let error = (e as Error).message
+
+      if (error.startsWith('SKIP: ')) {
+        error = error.slice(6)
         errorType = 'skip'
-        // } else if (e.message.startsWith('WARN: ')) {
-        //   e = e.message.slice(6)
+        // } else if (error.startsWith('WARN: ')) {
+        //   error = error.slice(6)
         //   errorType = 'warning'
       } else {
-        e = `Error reading file [${e.message}]`
+        error = `Error reading file [${error}]`
       }
-      // }
 
       return Promise.reject({
         oldPath: filePathFrom,
         newPath: '',
-        error: e,
+        error,
         errorType,
       }) as Promise<ErroredFile>
     })
@@ -529,7 +587,7 @@ export function logResults(
       // Skipped file
       logArray.push(
         // Filename
-        chalk.dim(basenameTo),
+        file.fromCache ? chalk.blue.dim(basenameTo) : chalk.dim(basenameTo),
         ' '.repeat(
           maxPathLength - bulletLength - file.newPath.length + spaceLength,
         ),
@@ -557,7 +615,9 @@ export function logResults(
       logArray.push(
         // Filename
         file.ratio < 0
-          ? chalk.green(basenameTo)
+          ? file.fromCache
+            ? chalk.blue(basenameTo)
+            : chalk.green(basenameTo)
           : file.ratio > 0
             ? chalk.yellow(basenameTo)
             : basenameTo,
@@ -645,9 +705,6 @@ export function logErrors(
             file.error,
           )
           break
-        case 'cache':
-          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
-          break
         case 'warning':
           logArray.push(
             chalk.bgYellow(' WARNING '),
@@ -688,9 +745,6 @@ export function logErrors(
             ' ',
             file.error,
           )
-          break
-        case 'cache':
-          logArray.push(chalk.black.bgBlue(' CACHED '), ' ', file.error)
           break
         case 'warning':
           logArray.push(
@@ -785,7 +839,6 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
 
       logger.info('')
 
-      // Init cache
       await FileCache.init(options, rootDir)
 
       const processDir = onlyAssets ? assetsDir : outDir
@@ -1012,7 +1065,6 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
             logResults(processedFiles[k], logger, maxLengths)
           })
 
-        // Write cache state to file for persistence
         FileCache.reconcile()
 
         Object.keys(erroredFiles)
