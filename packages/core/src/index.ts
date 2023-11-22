@@ -197,7 +197,7 @@ export function formatProcessedFile({
   precisions,
   bytesDivider,
   sizeUnit,
-}: FormatProcessedFileParams) {
+}: FormatProcessedFileParams): ProcessedFile {
   const ratio = newSize / oldSize - 1
 
   return {
@@ -234,15 +234,13 @@ export async function processFile({
   bytesDivider,
   sizeUnit,
 }: ProcessFileParams): ProcessFileReturn {
-  // const start = performance.now()
-
   if (!filePathFrom?.length) {
     return Promise.reject({
       oldPath: filePathFrom,
       newPath: '',
       error: 'Empty filepath',
       errorType: 'error',
-    }) as Promise<ErroredFile>
+    })
   }
 
   if (!fileToStack?.length) {
@@ -251,16 +249,23 @@ export async function processFile({
       newPath: '',
       error: 'Empty to-stack',
       errorType: 'error',
-    }) as Promise<ErroredFile>
+    })
   }
 
+  let cacheStack: (false | Promise<ProcessedFile>)[] = []
+
+  // TODO: Rewrite cache check and split this:
+  //       - get hash from cache (if present)
+  //       - after readFile below, make current hash and compare it
+  //       - check output cache in process pipeline as well?
+  //
+  // Reason: Since FileCache.checkAndCopy needs to read the file for checking,
+  //         we might as well do it only once as part of the process instead of twice.
   const [inputCacheStatus, outputCacheStatus] = await FileCache.checkAndCopy(
     baseDir,
     filePathFrom,
     fileToStack,
   )
-
-  let cacheStack: (false | Promise<ProcessedFile>)[] = []
 
   if (inputCacheStatus) {
     let hasFullValidCache = true
@@ -294,164 +299,95 @@ export async function processFile({
   let oldBuffer: Buffer
   let oldSize = 0
 
-  return readFile(baseDir + filePathFrom)
-    .then(buffer => {
-      const start = performance.now()
+  try {
+    oldBuffer = await readFile(baseDir + filePathFrom)
+    oldSize = oldBuffer.byteLength
+  } catch (error) {
+    return Promise.reject({
+      oldPath: filePathFrom,
+      newPath: '',
+      error: `Error reading file [${(error as Error).message}]`,
+      errorType: 'error',
+    })
+  }
 
-      oldBuffer = buffer
-      oldSize = oldBuffer.byteLength
+  if (filePathFrom.match(/\.a?png$/i) && isAPNG(oldBuffer)) {
+    return Promise.reject({
+      oldPath: filePathFrom,
+      newPath: '',
+      error: `Animated PNGs not supported`,
+      errorType: 'skip',
+    })
+  }
 
-      // TODO: handle elsewhere with
-      // (to-make-myself) `imagemin-apngquant` plugin
-      // `imagemin-apngquant` uses:
-      //  - is-apng
-      //  - apngdis-bin
-      //  - (concat frames to strip) [see script at: ...?]
-      //  - optimize using:
-      //    - user-supplied plugin + options
-      //    ? pngquant fallback
-      //  - apng-asm (strip to apng)
-      if (filePathFrom.match(/\.a?png$/i) && isAPNG(buffer)) {
-        /**
-         * TODO:
-         * - apngdis the input APNG, then:
-         * - if output path .png: make strip + run plugins + apngasm from strip + output
-         * - if output path .webp: plugin each frame + run frames through webpmux-bin + single .webp output
-         *
-         * @see C:\Users\phili\Desktop\APNG\test\index.js
-         */
-        throw new Error('SKIP: Animated PNGs not supported')
+  const start = performance.now()
 
-        // Copy input to tmp dir .png
-
-        // apngdis-bin: this file to frame `.png`s
-
-        // convert/optimize each .png to .webp
-
-        // webpmux-bin: combine all .webp to final .webp
-
-        // // const fileString = buffer.toString('utf8')
-        // const idatIdx = buffer.indexOf('IDAT')
-        // const actlIdx = buffer.indexOf('acTL')
-        // if (
-        //   filePathFrom.endsWith('.png') &&
-        //   idatIdx > 0 &&
-        //   actlIdx > 0 &&
-        //   idatIdx > actlIdx
-        // ) {
-        //   throw new Error('SKIP: Animated PNGs not supported')
-        // }
+  return Promise.allSettled(
+    fileToStack.map(async (item, i) => {
+      if (cacheStack[i]) {
+        return cacheStack[i] as Promise<ProcessedFile>
       }
 
-      return Promise.allSettled(
-        fileToStack.map((item, i) => {
-          let newBuffer: Buffer
-          let newSize = 0
+      const filePathTo = item.toPath
 
-          const filePathTo = item.toPath
+      let newBuffer: Buffer
+      let newSize = 0
 
-          if (cacheStack[i]) {
-            return cacheStack[i] as Promise<ProcessedFile>
-          }
+      try {
+        newBuffer = await imagemin.buffer(oldBuffer, { plugins: item.plugins })
+        newSize = newBuffer.byteLength
+      } catch (error) {
+        return Promise.reject({
+          oldPath: filePathFrom,
+          newPath: filePathTo,
+          error: `Error processing file:\n${
+            (error as Error)?.message ?? error
+          }`,
+          errorType: 'error',
+        })
+      }
 
-          return imagemin
-            .buffer(oldBuffer, { plugins: item.plugins })
-            .catch(e =>
-              Promise.reject(
-                // e.message ? `Error processing file [${e.message}]` : e,
-                e.message ? `Error processing file:\n${e.message}` : e,
-              ),
-            )
-            .then(buffer2 => {
-              newBuffer = buffer2
-              newSize = newBuffer.byteLength
+      /**
+       * NOTE: Don't overwrite the original if the optimized content is larger,
+       *       the option is set and this doesn't concern a WebP/Avif version.
+       */
+      if (
+        newSize <= oldSize ||
+        filePathFrom !== filePathTo ||
+        false === item.skipIfLarger
+      ) {
+        try {
+          await writeFile(baseDir + filePathTo, newBuffer)
+        } catch (error) {
+          return Promise.reject({
+            oldPath: filePathFrom,
+            newPath: filePathTo,
+            error: `Error writing file [${(error as Error).message}]`,
+            errorType: 'error',
+          })
+        }
+      }
 
-              if (false !== item.skipIfLarger && newSize > oldSize) {
-                // throw new Error('SKIP: Output is larger')
-                if (filePathTo === filePathFrom) {
-                  // NOTE:
-                  // If this optimized file is larger than original
-                  // and this is not a WebP/Avif version;
-                  // don't overwrite the original, but do continue (to have it log with the rest).
-                  return Promise.resolve()
-                }
-              }
+      await FileCache.update(baseDir, filePathTo, {
+        oldSize,
+        newSize,
+      })
 
-              // const newDirectory = path.dirname(baseDir + filePathTo)
-              // await ensureDir(newDirectory, 0o755)
-              return writeFile(baseDir + filePathTo, newBuffer)
-            })
-            .catch(e => {
-              if (e?.message) {
-                if (e.message.startsWith('SKIP: ')) {
-                  e = e.message
-                } else {
-                  e = `Error writing file [${e.message}]`
-                }
-              }
-              return Promise.reject(e)
-            })
-            .then(async () => {
-              await FileCache.update(baseDir, filePathTo, {
-                oldSize,
-                newSize,
-              })
-
-              return Promise.resolve(
-                formatProcessedFile({
-                  oldPath: filePathFrom,
-                  newPath: filePathTo,
-                  oldSize,
-                  newSize,
-                  duration: performance.now() - start,
-                  fromCache: false,
-                  precisions,
-                  bytesDivider,
-                  sizeUnit,
-                }),
-              )
-            })
-            .catch(error => {
-              let errorType = 'error'
-              if (error.startsWith('SKIP: ')) {
-                error = error.slice(6)
-                errorType = 'skip'
-              } else if (error.startsWith('WARN: ')) {
-                error = error.slice(6)
-                errorType = 'warning'
-              }
-
-              return Promise.reject({
-                oldPath: filePathFrom,
-                newPath: filePathTo,
-                error,
-                errorType,
-              })
-            })
+      return Promise.resolve(
+        formatProcessedFile({
+          oldPath: filePathFrom,
+          newPath: filePathTo,
+          oldSize,
+          newSize,
+          duration: performance.now() - start,
+          fromCache: false,
+          precisions,
+          bytesDivider,
+          sizeUnit,
         }),
       )
-    })
-    .catch(e => {
-      let errorType = 'error'
-      let error = (e as Error).message
-
-      if (error.startsWith('SKIP: ')) {
-        error = error.slice(6)
-        errorType = 'skip'
-        // } else if (error.startsWith('WARN: ')) {
-        //   error = error.slice(6)
-        //   errorType = 'warning'
-      } else {
-        error = `Error reading file [${error}]`
-      }
-
-      return Promise.reject({
-        oldPath: filePathFrom,
-        newPath: '',
-        error,
-        errorType,
-      }) as Promise<ErroredFile>
-    })
+    }),
+  )
 }
 
 export function processResults(results: ProcessResult[]): ProcessedResults {
