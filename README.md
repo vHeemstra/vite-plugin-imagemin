@@ -160,7 +160,7 @@ Default: `<packageRoot>/node_modules/.cache/vite-plugin-imagemin/<packageName>/`
 ### cacheKey
 
 Type: `string`<br>
-Default: ``
+Default: `''`
 
 > Optional string to distinguish build configs and their caches.
 >
