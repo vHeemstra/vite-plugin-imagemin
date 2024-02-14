@@ -245,16 +245,23 @@ Use [**skipIfLargerThan**](#makeskipiflargerthan) option to ensure additional ve
 
   # ...serve WebP image instead of jpeg/png/gif.
   RewriteRule (.+)\.(jpe?g|png|gif)$ $1.webp [T=image/webp,E=REQUEST_image]
+
+  # Same for AVIF
+  RewriteCond %{HTTP_ACCEPT} image/avif
+  RewriteCond %{REQUEST_FILENAME}.avif -f
+  RewriteRule (.+)\.(jpe?g|png|gif)$ $1.avif [T=image/avif,E=REQUEST_image]
 </IfModule>
 
 <IfModule mod_headers.c>
-  # Vary: Accept for all the requests to jpeg, png and gif
+  # Tell the browser the response (for this image) varies
+  # depending on the "Accept" request header.
   Header append Vary Accept env=REQUEST_image
 </IfModule>
 
 <IfModule mod_mime.c>
   # Add file type MIME support
   AddType image/webp .webp
+  AddType image/avif .avif
 </IfModule>
 ```
 _Adopted from answers given [here](https://stackoverflow.com/a/68967381/2142071)._
