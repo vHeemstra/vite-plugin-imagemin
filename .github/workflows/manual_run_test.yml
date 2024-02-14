@@ -6,14 +6,16 @@ on:
       node_versions:
         description: 'Select Node versions'
         required: true
-        default: '["16.x", "18.x"]'
+        default: '["18.x", "20.x"]'
         type: choice
         options:
           # - '["14.x"]'
-          - '["16.x"]'
+          # - '["16.x"]'
           - '["18.x"]'
-          - '["16.x", "18.x"]'
+          - '["20.x"]'
           # - '["14.x", "16.x", "18.x"]'
+          # - '["16.x", "18.x"]'
+          - '["18.x", "20.x"]'
       os_version:
         description: 'Select OS'
         required: true
@@ -41,9 +43,9 @@ jobs:
       - name: Set up NASM (for imagemin binary builds)
         uses: ilammy/setup-nasm@v1
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
