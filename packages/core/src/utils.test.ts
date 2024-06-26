@@ -10,10 +10,10 @@ import * as utils from './utils'
  * Directory path of this file polyfill
  * @see https://antfu.me/posts/publish-esm-and-cjs
  */
-const _dirname =
-  typeof __dirname !== 'undefined'
-    ? __dirname
-    : dirname(fileURLToPath(import.meta.url))
+// const _dirname =
+//   typeof __dirname !== 'undefined'
+//     ? __dirname
+//     : dirname(fileURLToPath(import.meta.url))
 
 const testVars = {
   v_undefined: undefined,
