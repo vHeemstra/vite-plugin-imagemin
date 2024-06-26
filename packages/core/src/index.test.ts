@@ -1380,7 +1380,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
     // Ensure empty temp dir for test
     const tempDir = normalizePath(
       //${process.env.VITEST_POOL_ID}
-      join(root, 'test', `temp${ctx.meta.id}`),
+      join(root, 'test', `temp${ctx.task.id}`),
     )
     if (existsSync(tempDir)) {
       rmSync(tempDir, { recursive: true, force: true })
@@ -1401,8 +1401,8 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
   it(
     'default config',
-    async ({ meta, expect }) => {
-      const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
+    async ({ task, expect }) => {
+      const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
       // const assetsDir = `${distDir}/assets`
       // const processDir = options.onlyAssets ? assetsDir : distDir
@@ -1489,9 +1489,9 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
   it(
     'only-smallest config',
-    async ({ meta, expect }) => {
+    async ({ task, expect }) => {
       // const spy = vi.spyOn(mockLogger, 'info')
-      const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
+      const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
 
       const options = {
@@ -1564,10 +1564,10 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
   it(
     'larger-than-original config',
-    async ({ meta, expect }) => {
+    async ({ task, expect }) => {
       const spy = vi.spyOn(mockLogger, 'info')
 
-      const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
+      const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
 
       const options = {
@@ -1617,8 +1617,8 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
   it(
     'equal-sized config',
-    async ({ meta, expect }) => {
-      const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
+    async ({ task, expect }) => {
+      const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
 
       const options = {
@@ -1647,8 +1647,8 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
   it(
     'non-verbose-equal-sized config',
-    async ({ meta, expect }) => {
-      const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
+    async ({ task, expect }) => {
+      const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
 
       const options = {
@@ -1678,8 +1678,8 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
   it(
     'no-files config',
-    async ({ meta, expect }) => {
-      const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
+    async ({ task, expect }) => {
+      const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
 
       const options = {
@@ -1714,8 +1714,8 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
   it(
     'no-plugins-for-files config',
-    async ({ meta, expect }) => {
-      const tempDir = normalizePath(join(root, 'test', `temp${meta.id}`))
+    async ({ task, expect }) => {
+      const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
 
       const options = {

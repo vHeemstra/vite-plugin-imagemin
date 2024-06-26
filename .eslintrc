@@ -5,24 +5,24 @@
     "es2021": true,
     "es6": true,
     "node": true,
-    "vitest-globals/env": true
+    "vitest-globals/env": true,
   },
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:vitest-globals/recommended",
-    "prettier"
+    "prettier",
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 12,
-    "sourceType": "module"
+    "sourceType": "module",
   },
   "plugins": ["@typescript-eslint"],
   "rules": {
     "no-console": 1,
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/ban-ts-comment": "off",
-    "@typescript-eslint/no-explicit-any": "off"
-  }
+    "@typescript-eslint/no-explicit-any": "off",
+  },
 }

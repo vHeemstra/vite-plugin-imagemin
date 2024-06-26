@@ -168,7 +168,7 @@ describe('smartEnsureDirs', () => {
   beforeEach(ctx => {
     // Ensure empty temp dir for test
     tempDir = normalizePath(
-      join(root, 'test', `temp${process.env.VITEST_POOL_ID}${ctx.meta.id}`),
+      join(root, 'test', `temp${process.env.VITEST_POOL_ID}${ctx.task.id}`),
     )
 
     if (existsSync(tempDir)) {
