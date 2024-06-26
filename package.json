@@ -52,8 +52,8 @@
     "bump:minor": "npm version minor -m \"Minor version %s\"",
     "bump:major": "npm version major -m \"Major version %s\"",
     "preversion": "run-s lint build test && git add .",
-    "version": "run-s version_a && git add .",
-    "version_a": "expose-env npm version --no-git-tag-version %npm_package_version% --workspace=packages/core",
+    "version": "cross-var npm version --no-git-tag-version $npm_package_version --workspace=packages/core && git add .",
+    "_version_new_": "expose-env npm version --no-git-tag-version %npm_package_version% --workspace=packages/core && git add .",
     "postversion": "git push --follow-tags"
   },
   "devDependencies": {
@@ -64,6 +64,7 @@
     "@vitest/coverage-istanbul": "^1.6.0",
     "@vitest/coverage-v8": "^1.6.0",
     "cross-env": "^7.0.3",
+    "cross-var": "^1.1.0",
     "eslint": "^9.5.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
