@@ -9,13 +9,11 @@ import {
   // readFileSync,
 } from 'node:fs'
 import {
-  dirname,
   relative,
   join,
   // resolve,
   // sep,
 } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 import _config from '../../playground/vite.config'
 import viteImagemin, {
@@ -50,15 +48,6 @@ import type {
   ProcessResult,
   ResolvedConfigOptions,
 } from './typings'
-
-/**
- * Directory path of this file polyfill
- * @see https://antfu.me/posts/publish-esm-and-cjs
- */
-// const _dirname =
-//   typeof __dirname !== 'undefined'
-//     ? __dirname
-//     : dirname(fileURLToPath(import.meta.url))
 
 /**
  * Prepare playground config without viteImagemin plugin
@@ -105,9 +94,6 @@ const getBuildConfig = (plugin, extraOptions = {}) =>
     ),
   )
 
-// const root = normalizePath(
-//   relative(normalizePath(process.cwd()), normalizePath(_dirname)),
-// )
 const root = 'packages/playground'
 const skipBuilds = typeof process.env.VITEST_SKIP_BUILDS !== 'undefined'
 
@@ -1152,13 +1138,9 @@ describe('logResults', () => {
     // expect(spy).toHaveBeenCalledWith('Error: ')
     // expect(spy).toHaveReturnedWith('Error: ')
     expect(spy.mock.results[1].value).toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[32m/, // green
       /dist\/.*to\.ext.+90 KiB.+-10 %.+100 ms/,
     )
     expect(spy.mock.results[2].value).toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[33m/, // yellow
       /dist\/.*to\.ext.+110 KiB.+\+10 %.+100 ms/,
     )
     // expect(spy.mock.results[2].value).toMatch(
@@ -1308,33 +1290,21 @@ describe('logErrors', () => {
     // For chalk's style codes, see:
     // https://github.com/chalk/chalk/blob/main/source/vendor/ansi-styles/index.js
     expect(spy.mock.results[2].value).toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[41m ERROR /, // bgRed
       / ERROR /, // bgRed
     )
     expect(spy.mock.results[3].value).toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[43m WARNING /, // bgYellow
       / WARNING /, // bgYellow
     )
     expect(spy.mock.results[4].value).toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[47m SKIPPED /, // bgWhite
       / SKIPPED /, // bgWhite
     )
     expect(spy.mock.results[7].value).toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[41m ERROR /, // bgRed
       / ERROR /, // bgRed
     )
     expect(spy.mock.results[10].value).toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[43m WARNING /, // bgYellow
       / WARNING /, // bgYellow
     )
     expect(spy.mock.results[13].value).toMatch(
-      /* eslint-disable-next-line no-control-regex */
-      // /\u001b\[47m SKIPPED /, // bgWhite
       / SKIPPED /, // bgWhite
     )
   })
@@ -1596,7 +1566,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
       expect(spy).toHaveBeenCalledTimes(8)
       expect(spy.mock.results[3].value).toMatch(
-        /* eslint-disable-next-line no-control-regex */
+        // /* eslint-disable-next-line no-control-regex */
         // /\u001b\[33manimated-transparent-2.gif/, // yellow
         /animated-transparent-2.gif.+\+\d+(\.\d+)? %/, // yellow
       )
@@ -1605,7 +1575,7 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       //   /\u001b\[31m\+\d+(\.\d+)? %/, // red
       // )
       expect(spy.mock.results[6].value).toMatch(
-        /* eslint-disable-next-line no-control-regex */
+        // /* eslint-disable-next-line no-control-regex */
         // /\u001b\[31m\+\d+(\.\d+)? %/, // red
         /\+\d+(\.\d+)? %/, // red
       )

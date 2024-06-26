@@ -1,19 +1,9 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { existsSync, rmSync, mkdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 
 import { normalizePath } from 'vite'
 import * as utils from './utils'
-
-/**
- * Directory path of this file polyfill
- * @see https://antfu.me/posts/publish-esm-and-cjs
- */
-// const _dirname =
-//   typeof __dirname !== 'undefined'
-//     ? __dirname
-//     : dirname(fileURLToPath(import.meta.url))
 
 const testVars = {
   v_undefined: undefined,
@@ -52,10 +42,6 @@ const makeExpectedVars = (
   )
 }
 
-// const root = process.cwd()
-// const root = normalizePath(
-//   relative(normalizePath(process.cwd()), normalizePath(_dirname)),
-// )
 const root = 'packages/playground'
 
 describe('isFunction', () => {
