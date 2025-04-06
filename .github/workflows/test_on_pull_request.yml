@@ -14,6 +14,10 @@ jobs:
     steps:
       - name: Set up NASM (for imagemin binary builds)
         uses: ilammy/setup-nasm@v1
+      - name: install libimagequant-dev
+        run: sudo apt-get install libimagequant-dev -y
+      - name: install libpng-dev
+        run: sudo apt-get install libpng-dev -y
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
