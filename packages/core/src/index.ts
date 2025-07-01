@@ -314,7 +314,7 @@ export async function processFile({
         }
       }
 
-      let newBuffer: Buffer
+      let newBuffer: Buffer | Uint8Array
       let newSize = 0
 
       try {
@@ -713,15 +713,9 @@ export default function viteImagemin(_options: ConfigOptions): PluginOption {
 
   /* istanbul ignore next -- @preserve */
   let logger: Logger = {
-    info: () => {
-      null
-    },
-    warn: () => {
-      null
-    },
-    error: () => {
-      null
-    },
+    info: () => {},
+    warn: () => {},
+    error: () => {},
   }
 
   const filter = createFilter(options.include, options.exclude)

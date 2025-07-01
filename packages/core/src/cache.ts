@@ -96,7 +96,7 @@ async function checkAndUpdate({
   fileName: string
   directory?: string
   stats?: Omit<CacheValue, 'hash'>
-  buffer?: Buffer
+  buffer?: Buffer | Uint8Array
   restoreTo?: string | false
 }): Promise<{
   changed?: boolean
@@ -183,7 +183,7 @@ export const FileCache = {
     stats,
   }: {
     fileName: string
-    buffer: Buffer
+    buffer: Buffer | Uint8Array
     directory?: string
     stats?: Omit<CacheValue, 'hash'>
   }) => {
@@ -238,6 +238,7 @@ export const FileCache = {
       fileCacheMap = new Map(entryMap)
 
       return true
+      /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     } catch (error) {
       // console.error('Cache reconcile has failed', error)
       return false

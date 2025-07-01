@@ -249,7 +249,7 @@ Use [**skipIfLargerThan**](#makeskipiflargerthan) option to ensure additional ve
   # Same for AVIF
   RewriteCond %{HTTP_ACCEPT} image/avif
   RewriteCond %{REQUEST_FILENAME}.avif -f
-  RewriteRule (.+)\.(jpe?g|png|gif)$ $1.avif [T=image/avif,E=REQUEST_image]
+  RewriteRule (.+)\.(jpe?g|png)$ $1.avif [T=image/avif,E=REQUEST_image]
 </IfModule>
 
 <IfModule mod_headers.c>
