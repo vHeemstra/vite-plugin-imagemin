@@ -50,7 +50,7 @@ export interface ConfigOptions {
 
   /**
    * Process files in assets dir only.
-   * @default true
+   * @default false
    */
   onlyAssets?: boolean
 
