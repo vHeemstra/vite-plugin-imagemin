@@ -6,9 +6,9 @@ import viteImagemin from '@vheemstra/vite-plugin-imagemin'
 import imageminMozjpeg from 'imagemin-mozjpeg'
 // import imageminJpegtran from 'imagemin-jpegtran'
 // import imageminJpegoptim from 'imagemin-jpegoptim'
-import imageminPngquant from 'imagemin-pngquant'
+// import imageminPngquant from 'imagemin-pngquant'
 // import imageminOptipng from 'imagemin-optipng'
-// import imageminOxipng from '@vheemstra/imagemin-oxipng'
+import imageminOxipng from '@vheemstra/imagemin-oxipng'
 import imageminGifsicle from 'imagemin-gifsicle'
 import imageminSvgo from 'imagemin-svgo'
 import imageminWebp from 'imagemin-webp'
@@ -25,7 +25,7 @@ export default defineConfig({
     viteImagemin({
       // verbose: false,
       plugins: {
-        png: imageminPngquant(),
+        png: imageminOxipng(),
         jpg: imageminMozjpeg(),
         gif: imageminGifsicle(),
         svg: imageminSvgo(),

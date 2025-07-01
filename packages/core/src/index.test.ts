@@ -107,9 +107,7 @@ const mockLogger: Logger = {
 
 describe('parsePlugins', () => {
   it('false on false, empty or invalid', () => {
-    // @ts-expect-error testing wrong argument type
     expect(parsePlugins(null)).toBe(false)
-    // @ts-expect-error testing wrong argument type
     expect(parsePlugins(undefined)).toBe(false)
     // @ts-expect-error testing wrong argument type
     expect(parsePlugins(false)).toBe(false)
@@ -118,9 +116,7 @@ describe('parsePlugins', () => {
     // @ts-expect-error testing wrong argument type
     expect(parsePlugins([])).toBe(false)
     expect(parsePlugins({})).toBe(false)
-    // @ts-expect-error testing wrong argument type
     expect(parsePlugins({ ext: null })).toBe(false)
-    // @ts-expect-error testing wrong argument type
     expect(parsePlugins({ ext: [null] })).toBe(false)
     // @ts-expect-error testing wrong argument type
     expect(parsePlugins({ ext: ['test', false] })).toBe(false)
@@ -1371,6 +1367,9 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
   it(
     'default config',
+    {
+      timeout: 30000,
+    },
     async ({ task, expect }) => {
       const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
@@ -1452,13 +1451,13 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       // - check if expected files are there
       // - check if certain files have been skipped
     },
-    {
-      timeout: 30000,
-    },
   )
 
   it(
     'only-smallest config',
+    {
+      timeout: 30000,
+    },
     async ({ task, expect }) => {
       // const spy = vi.spyOn(mockLogger, 'info')
       const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
@@ -1527,13 +1526,13 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       // - check if expected files are there
       // - check if certain files have been skipped
     },
-    {
-      timeout: 30000,
-    },
   )
 
   it(
     'larger-than-original config',
+    {
+      timeout: 10000,
+    },
     async ({ task, expect }) => {
       const spy = vi.spyOn(mockLogger, 'info')
 
@@ -1580,13 +1579,13 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
         /\+\d+(\.\d+)? %/, // red
       )
     },
-    {
-      timeout: 10000,
-    },
   )
 
   it(
     'equal-sized config',
+    {
+      timeout: 10000,
+    },
     async ({ task, expect }) => {
       const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
@@ -1610,13 +1609,13 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
       expect(existsSync(distDir)).toBe(true)
     },
-    {
-      timeout: 10000,
-    },
   )
 
   it(
     'non-verbose-equal-sized config',
+    {
+      timeout: 10000,
+    },
     async ({ task, expect }) => {
       const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
@@ -1641,13 +1640,13 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
       expect(existsSync(distDir)).toBe(true)
     },
-    {
-      timeout: 10000,
-    },
   )
 
   it(
     'no-files config',
+    {
+      timeout: 10000,
+    },
     async ({ task, expect }) => {
       const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
@@ -1677,13 +1676,13 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
 
       expect(existsSync(distDir)).toBe(true)
     },
-    {
-      timeout: 10000,
-    },
   )
 
   it(
     'no-plugins-for-files config',
+    {
+      timeout: 10000,
+    },
     async ({ task, expect }) => {
       const tempDir = normalizePath(join(root, 'test', `temp${task.id}`))
       const distDir = `${tempDir}/dist`
@@ -1707,9 +1706,6 @@ describe.skipIf(skipBuilds)('viteImagemin', () => {
       await expect(build(testConfig)).resolves.toHaveProperty('output')
 
       expect(existsSync(distDir)).toBe(true)
-    },
-    {
-      timeout: 10000,
     },
   )
 
