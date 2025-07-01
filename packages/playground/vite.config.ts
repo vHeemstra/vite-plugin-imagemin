@@ -20,7 +20,7 @@ import imageminAvif from '@vheemstra/imagemin-avifenc'
 export default defineConfig({
   plugins: [
     react({
-      fastRefresh: process.env.NODE_ENV !== 'test',
+      // fastRefresh: process.env.NODE_ENV !== 'test',
     }),
     viteImagemin({
       // verbose: false,
